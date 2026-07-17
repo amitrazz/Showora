@@ -165,7 +165,6 @@ export function PurchasePage() {
             title="Inventory Added (Mtd)"
             value={metrics.inventoryAdded.toString()}
             icon={<PackageOpen className="h-4 w-4" />}
-            trend={{ value: 15, isPositive: true }}
             className="border-emerald-500/20 bg-emerald-500/5"
           />
         </div>

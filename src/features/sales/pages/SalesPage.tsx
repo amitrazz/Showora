@@ -16,16 +16,19 @@ import { EmptyState } from "@/components/common/EmptyState";
 
 const salesColumns: ColumnDef<SalesRecord>[] = [
   {
-    accessorKey: "invoiceNumber",
-    header: "Invoice",
+    accessorKey: "id",
+    header: "Sale ID / Invoice",
     cell: ({ row }) => (
-      <Link 
-        to="/sales/$saleId" 
-        params={{ saleId: row.original.id }}
-        className="text-sm font-mono font-medium hover:text-primary transition-colors hover:underline"
-      >
-        {row.original.invoiceNumber}
-      </Link>
+      <div className="flex flex-col">
+        <Link 
+          to="/sales/$saleId" 
+          params={{ saleId: row.original.id }}
+          className="text-sm font-mono font-medium hover:text-primary transition-colors hover:underline"
+        >
+          #{row.original.id.substring(0, 8)}
+        </Link>
+        <span className="text-xs text-muted-foreground font-mono">{row.original.invoiceNumber || 'No Invoice'}</span>
+      </div>
     ),
   },
   {
@@ -157,7 +160,6 @@ export function SalesPage() {
             title="Monthly Revenue"
             value={formatCurrency(metrics.monthlyRevenue)}
             icon={<TrendingUp className="h-4 w-4" />}
-            trend={{ value: 12, isPositive: true }}
             className="border-emerald-500/20 bg-emerald-500/5"
           />
           <StatsCard

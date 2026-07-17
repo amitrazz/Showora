@@ -1,8 +1,8 @@
 import axios from 'axios';
-import { useAuthStore } from '@/store';
+import { useAuthStore, useTenantStore } from '@/store';
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://api.amitrazz.in',
+  baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -14,6 +14,12 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  const tenantId = useTenantStore.getState().currentTenant?.id;
+  if (tenantId) {
+    config.headers['x-tenant-id'] = tenantId;
+  }
+
   return config;
 });
 

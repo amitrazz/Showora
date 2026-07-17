@@ -7,56 +7,45 @@ import {
   NotificationPreferences,
   AppearanceConfig
 } from './types';
-import { 
-  mockGeneralSettings, 
-  mockOrganizationSettings, 
-  mockNotificationPrefs, 
-  mockAppearanceConfig,
-  mockBranches,
-  mockUsers,
-  mockAuditLogs
-} from './data';
-
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+import { api } from '@/lib/api';
 
 export const settingsService = {
   getGeneralSettings: async (): Promise<GeneralSettings> => {
-    await delay(300);
-    return mockGeneralSettings;
+    const response = await api.get<GeneralSettings>('/settings/general');
+    return response.data;
   },
 
   getOrganizationSettings: async (): Promise<OrganizationSettings> => {
-    await delay(300);
-    return mockOrganizationSettings;
+    const response = await api.get<OrganizationSettings>('/settings/organization');
+    return response.data;
   },
 
   getNotificationPreferences: async (): Promise<NotificationPreferences> => {
-    await delay(300);
-    return mockNotificationPrefs;
+    const response = await api.get<NotificationPreferences>('/settings/notifications');
+    return response.data;
   },
 
   getAppearanceConfig: async (): Promise<AppearanceConfig> => {
-    await delay(300);
-    return mockAppearanceConfig;
+    const response = await api.get<AppearanceConfig>('/settings/appearance');
+    return response.data;
   },
 
   getBranches: async (): Promise<BranchSettings[]> => {
-    await delay(500);
-    return mockBranches;
+    const response = await api.get<BranchSettings[]>('/settings/branches');
+    return response.data;
   },
 
   getUsers: async (): Promise<UserSettings[]> => {
-    await delay(500);
-    return mockUsers;
+    const response = await api.get<UserSettings[]>('/settings/users');
+    return response.data;
   },
 
   getAuditLogs: async (): Promise<AuditLogEvent[]> => {
-    await delay(600);
-    return mockAuditLogs;
+    const response = await api.get<AuditLogEvent[]>('/settings/audit-logs');
+    return response.data;
   },
 
   updateSettings: async (module: string, data: any): Promise<void> => {
-    await delay(800); // Simulate network save
-    console.log(`Saved ${module} settings:`, data);
+    await api.patch(`/settings/${module}`, data);
   }
 };

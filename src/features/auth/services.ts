@@ -9,13 +9,13 @@ interface LoginResponse {
 export const loginService = async (data: LoginFormData): Promise<{ user: User; accessToken: string }> => {
   const response = await api.post<LoginResponse>('/auth/login', data);
   const { accessToken } = response.data;
-  
+
   // Basic JWT decoding for UI purposes
   let user: User;
   try {
     const payloadBase64 = accessToken.split('.')[1];
     const decodedPayload = JSON.parse(atob(payloadBase64));
-    
+
     user = {
       id: decodedPayload.sub || "usr_1",
       name: decodedPayload.name || decodedPayload.email.split('@')[0],

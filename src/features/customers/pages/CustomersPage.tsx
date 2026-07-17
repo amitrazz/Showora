@@ -143,7 +143,6 @@ export function CustomersPage() {
             title="New This Month"
             value={metrics.newThisMonth.toString()}
             icon={<UserPlus className="h-4 w-4" />}
-            trend={{ value: 12, isPositive: true }}
           />
           <StatsCard
             title="Outstanding Amount"

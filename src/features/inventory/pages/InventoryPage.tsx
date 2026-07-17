@@ -152,7 +152,6 @@ export function InventoryPage() {
             title="Available Stock"
             value={metrics.availableStock.toString()}
             icon={<ShieldCheck className="h-4 w-4" />}
-            trend={{ value: 5, isPositive: true }}
             className="border-emerald-500/20 bg-emerald-500/5"
           />
           <StatsCard

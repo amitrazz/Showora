@@ -7,75 +7,61 @@ import {
   InsightCard,
   FilterState
 } from './types';
-import { 
-  mockKPIMetrics, 
-  mockRevenueTrend, 
-  mockSalesByModel, 
-  mockInventoryDistribution,
-  mockExpenseCategories,
-  mockSalesExecutives,
-  mockInventoryHealth,
-  mockInsights,
-  mockCustomerAcquisition,
-  mockSupplierPerformance,
-  mockTaxRegister
-} from './data';
-
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+import { api } from '@/lib/api';
 
 export const reportService = {
-  getKPIMetrics: async (_filters?: FilterState): Promise<KPIMetrics> => {
-    await delay(600);
-    return mockKPIMetrics;
+  getKPIMetrics: async (filters?: FilterState): Promise<KPIMetrics> => {
+    const response = await api.get<KPIMetrics>('/reports/kpis', { params: filters });
+    return response.data;
   },
 
-  getRevenueTrend: async (_filters?: FilterState): Promise<TimeSeriesData[]> => {
-    await delay(700);
-    return mockRevenueTrend;
+  getRevenueTrend: async (filters?: FilterState): Promise<TimeSeriesData[]> => {
+    const response = await api.get<TimeSeriesData[]>('/reports/revenue-trend', { params: filters });
+    return response.data;
   },
 
-  getSalesByModel: async (_filters?: FilterState): Promise<DistributionData[]> => {
-    await delay(500);
-    return mockSalesByModel;
+  getSalesByModel: async (filters?: FilterState): Promise<DistributionData[]> => {
+    const response = await api.get<DistributionData[]>('/reports/sales-by-model', { params: filters });
+    return response.data;
   },
 
-  getInventoryDistribution: async (_filters?: FilterState): Promise<DistributionData[]> => {
-    await delay(500);
-    return mockInventoryDistribution;
+  getInventoryDistribution: async (filters?: FilterState): Promise<DistributionData[]> => {
+    const response = await api.get<DistributionData[]>('/reports/inventory-distribution', { params: filters });
+    return response.data;
   },
 
-  getExpenseCategories: async (_filters?: FilterState): Promise<DistributionData[]> => {
-    await delay(500);
-    return mockExpenseCategories;
+  getExpenseCategories: async (filters?: FilterState): Promise<DistributionData[]> => {
+    const response = await api.get<DistributionData[]>('/reports/expense-categories', { params: filters });
+    return response.data;
   },
 
-  getSalesExecutives: async (_filters?: FilterState): Promise<SalesByExecutive[]> => {
-    await delay(800);
-    return mockSalesExecutives;
+  getSalesExecutives: async (filters?: FilterState): Promise<SalesByExecutive[]> => {
+    const response = await api.get<SalesByExecutive[]>('/reports/sales-executives', { params: filters });
+    return response.data;
   },
 
-  getInventoryHealth: async (_filters?: FilterState): Promise<InventoryHealthData[]> => {
-    await delay(800);
-    return mockInventoryHealth;
+  getInventoryHealth: async (filters?: FilterState): Promise<InventoryHealthData[]> => {
+    const response = await api.get<InventoryHealthData[]>('/reports/inventory-health', { params: filters });
+    return response.data;
   },
 
-  getInsights: async (_filters?: FilterState): Promise<InsightCard[]> => {
-    await delay(400);
-    return mockInsights;
+  getInsights: async (filters?: FilterState): Promise<InsightCard[]> => {
+    const response = await api.get<InsightCard[]>('/reports/insights', { params: filters });
+    return response.data;
   },
 
-  getCustomerAcquisition: async (_filters?: FilterState): Promise<TimeSeriesData[]> => {
-    await delay(500);
-    return mockCustomerAcquisition;
+  getCustomerAcquisition: async (filters?: FilterState): Promise<TimeSeriesData[]> => {
+    const response = await api.get<TimeSeriesData[]>('/reports/customer-acquisition', { params: filters });
+    return response.data;
   },
 
-  getSupplierPerformance: async (_filters?: FilterState): Promise<DistributionData[]> => {
-    await delay(600);
-    return mockSupplierPerformance;
+  getSupplierPerformance: async (filters?: FilterState): Promise<DistributionData[]> => {
+    const response = await api.get<DistributionData[]>('/reports/supplier-performance', { params: filters });
+    return response.data;
   },
 
-  getTaxRegister: async (_filters?: FilterState): Promise<any[]> => {
-    await delay(400);
-    return mockTaxRegister;
+  getTaxRegister: async (filters?: FilterState): Promise<any[]> => {
+    const response = await api.get<any[]>('/reports/tax-register', { params: filters });
+    return response.data;
   }
 };

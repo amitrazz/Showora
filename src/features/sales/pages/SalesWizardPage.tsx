@@ -9,8 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ChevronRight, ChevronLeft, Save, IndianRupee, Users, Truck, Banknote, Shield, Package } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, Link } from "@tanstack/react-router";
 import { formatCurrency } from "@/utils/formatters";
+import { useCustomers } from "../../customers/hooks";
+import { useInventory } from "../../inventory/hooks";
 
 const steps = [
   { id: "customer", title: "Customer" },
@@ -26,6 +28,10 @@ export function SalesWizardPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const navigate = useNavigate();
   const createMutation = useCreateSale();
+  const { data: customers } = useCustomers();
+  const { data: inventory } = useInventory();
+  const customerList = customers || [];
+  const inventoryList = (inventory || []).filter(v => v.status === 'Available');
 
   const form = useForm<CreateSaleWizardForm>({
     resolver: zodResolver(createSaleWizardSchema) as any,
@@ -48,6 +54,11 @@ export function SalesWizardPage() {
 
   const paymentAmount = watch("payment.initialPaymentAmount") || 0;
   const outstanding = Math.max(0, grandTotal - paymentAmount);
+
+  const selectedCustomerId = watch("customer.customerId");
+  const selectedVehicleId = watch("vehicle.inventoryId");
+  const selectedCustomer = customerList.find(c => c.id === selectedCustomerId);
+  const selectedVehicle = inventoryList.find(v => v.id === selectedVehicleId);
   
   const financeRequired = watch("finance.required");
 
@@ -133,15 +144,19 @@ export function SalesWizardPage() {
                           <label className="text-sm font-medium">Customer Search *</label>
                           <select {...register("customer.customerId")} className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             <option value="">Select a customer...</option>
-                            <option value="cust_1">Rahul Sharma (+91 9876543210)</option>
-                            <option value="cust_2">Priya Patel (+91 9876543211)</option>
-                            <option value="cust_3">Amit Kumar (+91 9876543212)</option>
+                            {customerList.map(c => (
+                              <option key={c.id} value={c.id}>
+                                {c.firstName} {c.lastName} ({c.phone})
+                              </option>
+                            ))}
                           </select>
                           {errors.customer?.customerId && <p className="text-xs text-destructive">{errors.customer.customerId.message}</p>}
                         </div>
                         <div className="pt-4 flex items-center gap-4 border-t border-border/50">
                           <span className="text-sm text-muted-foreground">Or create a new customer?</span>
-                          <Button variant="secondary" size="sm">Create New</Button>
+                          <Link to="/customers/new">
+                            <Button variant="secondary" size="sm">Create New</Button>
+                          </Link>
                         </div>
                       </div>
                     </motion.div>
@@ -158,9 +173,11 @@ export function SalesWizardPage() {
                           <label className="text-sm font-medium">Available Inventory *</label>
                           <select {...register("vehicle.inventoryId")} className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             <option value="">Select an available vehicle...</option>
-                            <option value="inv_1">Royal Enfield Classic 350 - Stealth Black (VIN: ME3123456789)</option>
-                            <option value="inv_2">Honda CB350 - DLX Pro (VIN: ME3987654321)</option>
-                            <option value="inv_3">KTM Duke 390 - Standard (VIN: ME3456123789)</option>
+                            {inventoryList.map(v => (
+                              <option key={v.id} value={v.id}>
+                                {v.make} {v.model} - {v.variant} (VIN: {v.vin})
+                              </option>
+                            ))}
                           </select>
                           {errors.vehicle?.inventoryId && <p className="text-xs text-destructive">{errors.vehicle.inventoryId.message}</p>}
                         </div>
@@ -325,8 +342,8 @@ export function SalesWizardPage() {
                       <div className="bg-muted/20 p-6 rounded-xl border border-border/50">
                          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Sale Summary</h4>
                          <div className="space-y-2 mb-6">
-                           <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Customer ID:</span><span className="text-sm font-medium">{watch("customer.customerId")}</span></div>
-                           <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Vehicle ID:</span><span className="text-sm font-medium font-mono">{watch("vehicle.inventoryId")}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Customer:</span><span className="text-sm font-medium">{selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : (selectedCustomerId || "None")}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Vehicle:</span><span className="text-sm font-medium font-mono">{selectedVehicle ? `${selectedVehicle.make} ${selectedVehicle.model} - ${selectedVehicle.variant}` : (selectedVehicleId || "None")}</span></div>
                            <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Expected Delivery:</span><span className="text-sm font-medium">{watch("delivery.expectedDate")}</span></div>
                          </div>
                          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 border-t border-border/50 pt-4">Financials</h4>
