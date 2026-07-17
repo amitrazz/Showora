@@ -1,0 +1,63 @@
+import { DashboardMetrics } from "./types";
+
+export const dashboardData: DashboardMetrics = {
+  totalRevenue: 45231890,
+  revenueTrend: 20.1,
+  bikesSold: 124,
+  bikesSoldTrend: 15,
+  activeCustomers: 573,
+  activeCustomersTrend: 12.5,
+  pendingInvoices: 12,
+  recentSales: [
+    {
+      id: "sale_1",
+      customerName: "Rahul Sharma",
+      customerEmail: "rahul.s@example.com",
+      bikeModel: "Ninja ZX-10R",
+      amount: 1850000,
+      date: "2024-03-15T10:30:00Z",
+    },
+    {
+      id: "sale_2",
+      customerName: "Priya Patel",
+      customerEmail: "priya.p@example.com",
+      bikeModel: "Duke 390",
+      amount: 310000,
+      date: "2024-03-14T14:45:00Z",
+    },
+    {
+      id: "sale_3",
+      customerName: "Amit Kumar",
+      customerEmail: "amit.k@example.com",
+      bikeModel: "Continental GT 650",
+      amount: 345000,
+      date: "2024-03-14T09:15:00Z",
+    },
+    {
+      id: "sale_4",
+      customerName: "Sneha Reddy",
+      customerEmail: "sneha.r@example.com",
+      bikeModel: "R15 V4",
+      amount: 195000,
+      date: "2024-03-13T16:20:00Z",
+    },
+    {
+      id: "sale_5",
+      customerName: "Vikram Singh",
+      customerEmail: "vikram.s@example.com",
+      bikeModel: "Himalayan 450",
+      amount: 285000,
+      date: "2024-03-12T11:00:00Z",
+    },
+  ],
+  revenueByMonth: [
+    { name: "Jan", total: 12500000 },
+    { name: "Feb", total: 18500000 },
+    { name: "Mar", total: 14500000 },
+    { name: "Apr", total: 22000000 },
+    { name: "May", total: 28500000 },
+    { name: "Jun", total: 21000000 },
+    { name: "Jul", total: 32000000 },
+    { name: "Aug", total: 45231890 },
+  ],
+};
