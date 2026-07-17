@@ -1,11 +1,11 @@
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { loginSchema, LoginFormData } from "../schemas";
-import { useLogin } from "../hooks";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bike } from "lucide-react";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Bike } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { useLogin } from '../hooks';
+import { LoginFormData, loginSchema } from '../schemas';
 
 export function LoginPage() {
   const { mutate: login, isPending, error } = useLogin();
@@ -16,8 +16,8 @@ export function LoginPage() {
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      password: "password",
-    }
+      password: '',
+    },
   });
 
   const onSubmit = (data: LoginFormData) => {
@@ -34,9 +34,7 @@ export function LoginPage() {
             </div>
           </div>
           <CardTitle className="text-2xl">Welcome back</CardTitle>
-          <CardDescription>
-            Enter your email to sign in to Showora
-          </CardDescription>
+          <CardDescription>Enter your email to sign</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -44,14 +42,8 @@ export function LoginPage() {
               <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                 Email
               </label>
-              <Input
-                type="email"
-                placeholder="m@example.com"
-                {...register("email")}
-              />
-              {errors.email && (
-                <p className="text-sm text-destructive">{errors.email.message}</p>
-              )}
+              <Input type="email" placeholder="m@example.com" {...register('email')} />
+              {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -59,10 +51,7 @@ export function LoginPage() {
                   Password
                 </label>
               </div>
-              <Input
-                type="password"
-                {...register("password")}
-              />
+              <Input type="password" {...register('password')} />
               {errors.password && (
                 <p className="text-sm text-destructive">{errors.password.message}</p>
               )}
@@ -73,7 +62,7 @@ export function LoginPage() {
               </div>
             )}
             <Button type="submit" className="w-full" disabled={isPending}>
-              {isPending ? "Signing in..." : "Sign in"}
+              {isPending ? 'Signing in...' : 'Sign in'}
             </Button>
           </form>
         </CardContent>
