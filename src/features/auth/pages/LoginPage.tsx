@@ -16,7 +16,6 @@ export function LoginPage() {
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "admin@showora.com",
       password: "password",
     }
   });
