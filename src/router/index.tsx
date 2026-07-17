@@ -10,6 +10,7 @@ import { PurchasePage, PurchaseWizardPage, PurchaseWorkspacePage } from "@/featu
 import { InvoicePage, InvoiceWizardPage, InvoiceWorkspacePage } from "@/features/invoices";
 import { ExpensePage, ExpenseWizardPage, ExpenseWorkspacePage } from "@/features/expenses";
 import { ReportsDashboardPage } from "@/features/reports";
+import { SettingsPage } from "@/features/settings";
 import { Outlet } from "@tanstack/react-router";
 
 // Root Route
@@ -175,7 +176,7 @@ const reportsRoute = createRoute({
 const settingsRoute = createRoute({
   getParentRoute: () => dashboardLayoutRoute,
   path: "/settings",
-  component: () => <div className="p-4">Settings coming soon</div>,
+  component: SettingsPage,
 });
 
 // Route Tree

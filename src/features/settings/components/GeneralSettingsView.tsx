@@ -3,10 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { useGeneralSettings } from "../hooks";
 import { generalSettingsSchema, GeneralSettingsFormValues } from "../schemas";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 
 export const GeneralSettingsView = ({ onDirty }: { onDirty: () => void }) => {
   const { data, isLoading } = useGeneralSettings();
@@ -37,6 +34,9 @@ export const GeneralSettingsView = ({ onDirty }: { onDirty: () => void }) => {
 
   if (isLoading) return <div className="space-y-4"><div className="h-10 bg-muted animate-pulse rounded-md w-1/3"></div><div className="h-32 bg-muted animate-pulse rounded-md w-full"></div></div>;
 
+  const { errors } = form.formState;
+  const SelectClass = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div>
@@ -44,159 +44,84 @@ export const GeneralSettingsView = ({ onDirty }: { onDirty: () => void }) => {
         <p className="text-sm text-muted-foreground mt-1">Configure your primary showroom details and localizations.</p>
       </div>
       
-      <Form {...form}>
-        <form className="space-y-8">
+      <form className="space-y-8">
+        
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Showroom Name</label>
+            <Input {...form.register("showroomName")} className="max-w-md" />
+            <p className="text-xs text-muted-foreground">This is your dealership's internal display name.</p>
+            {errors.showroomName && <p className="text-xs text-destructive">{errors.showroomName.message}</p>}
+          </div>
           
-          <div className="space-y-6">
-            <FormField
-              control={form.control}
-              name="showroomName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Showroom Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} className="max-w-md" />
-                  </FormControl>
-                  <FormDescription>This is your dealership's internal display name.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="businessType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Business Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger className="max-w-md">
-                        <SelectValue placeholder="Select business type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Automotive Dealership">Automotive Dealership</SelectItem>
-                      <SelectItem value="Service Center">Service Center</SelectItem>
-                      <SelectItem value="Spares Retailer">Spares Retailer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="businessDescription"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Business Description</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} className="max-w-xl resize-none h-24" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Business Type</label>
+            <select {...form.register("businessType")} className={`${SelectClass} max-w-md`}>
+              <option value="">Select business type</option>
+              <option value="Automotive Dealership">Automotive Dealership</option>
+              <option value="Service Center">Service Center</option>
+              <option value="Spares Retailer">Spares Retailer</option>
+            </select>
+            {errors.businessType && <p className="text-xs text-destructive">{errors.businessType.message}</p>}
           </div>
 
-          <div className="h-px bg-border my-8" />
-          <h3 className="text-lg font-medium mb-4">Localization</h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
-            <FormField
-              control={form.control}
-              name="timezone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Timezone</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select timezone" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Asia/Kolkata">Asia/Kolkata (IST)</SelectItem>
-                      <SelectItem value="UTC">UTC</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Business Description</label>
+            <textarea 
+              {...form.register("businessDescription")} 
+              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 max-w-xl resize-none h-24"
             />
+            {errors.businessDescription && <p className="text-xs text-destructive">{errors.businessDescription.message}</p>}
+          </div>
+        </div>
 
-            <FormField
-              control={form.control}
-              name="currency"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Default Currency</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select currency" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="INR (₹)">INR (₹)</SelectItem>
-                      <SelectItem value="USD ($)">USD ($)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <div className="h-px bg-border my-8" />
+        <h3 className="text-lg font-medium mb-4">Localization</h3>
 
-            <FormField
-              control={form.control}
-              name="financialYear"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Financial Year Start</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select financial year" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="April - March">April - March (India)</SelectItem>
-                      <SelectItem value="Jan - Dec">January - December</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="dateFormat"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Date Format</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select date format" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="DD/MM/YYYY">DD/MM/YYYY (India)</SelectItem>
-                      <SelectItem value="MM/DD/YYYY">MM/DD/YYYY (US)</SelectItem>
-                      <SelectItem value="YYYY-MM-DD">YYYY-MM-DD (ISO)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Timezone</label>
+            <select {...form.register("timezone")} className={SelectClass}>
+              <option value="">Select timezone</option>
+              <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
+              <option value="UTC">UTC</option>
+            </select>
+            {errors.timezone && <p className="text-xs text-destructive">{errors.timezone.message}</p>}
           </div>
 
-        </form>
-      </Form>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Default Currency</label>
+            <select {...form.register("currency")} className={SelectClass}>
+              <option value="">Select currency</option>
+              <option value="INR (₹)">INR (₹)</option>
+              <option value="USD ($)">USD ($)</option>
+            </select>
+            {errors.currency && <p className="text-xs text-destructive">{errors.currency.message}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Financial Year Start</label>
+            <select {...form.register("financialYear")} className={SelectClass}>
+              <option value="">Select financial year</option>
+              <option value="April - March">April - March (India)</option>
+              <option value="Jan - Dec">January - December</option>
+            </select>
+            {errors.financialYear && <p className="text-xs text-destructive">{errors.financialYear.message}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Date Format</label>
+            <select {...form.register("dateFormat")} className={SelectClass}>
+              <option value="">Select date format</option>
+              <option value="DD/MM/YYYY">DD/MM/YYYY (India)</option>
+              <option value="MM/DD/YYYY">MM/DD/YYYY (US)</option>
+              <option value="YYYY-MM-DD">YYYY-MM-DD (ISO)</option>
+            </select>
+            {errors.dateFormat && <p className="text-xs text-destructive">{errors.dateFormat.message}</p>}
+          </div>
+        </div>
+
+      </form>
     </div>
   );
 };
