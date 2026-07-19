@@ -5,6 +5,7 @@ import {
   useReactTable,
   getPaginationRowModel,
   getSortedRowModel,
+  PaginationState,
   SortingState,
   getFilteredRowModel,
 } from "@tanstack/react-table";
@@ -36,6 +37,10 @@ export function DataTable<TData, TValue>({
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [rowSelection, setRowSelection] = useState({});
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
 
   const table = useReactTable({
     data,
@@ -45,16 +50,22 @@ export function DataTable<TData, TValue>({
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    onPaginationChange: setPagination,
     onGlobalFilterChange: setGlobalFilter,
     onRowSelectionChange: setRowSelection,
     state: {
       sorting,
       globalFilter,
       rowSelection,
+      pagination,
     },
   });
 
   const selectedCount = Object.keys(rowSelection).length;
+  const filteredRowCount = table.getFilteredRowModel().rows.length;
+  const { pageIndex, pageSize } = table.getState().pagination;
+  const firstVisibleRow = filteredRowCount === 0 ? 0 : pageIndex * pageSize + 1;
+  const lastVisibleRow = Math.min((pageIndex + 1) * pageSize, filteredRowCount);
 
   return (
     <div className="space-y-4">
@@ -65,7 +76,10 @@ export function DataTable<TData, TValue>({
             <Input
               placeholder="Search..."
               value={globalFilter ?? ""}
-              onChange={(event) => setGlobalFilter(String(event.target.value))}
+              onChange={(event) => {
+                setGlobalFilter(String(event.target.value));
+                table.setPageIndex(0);
+              }}
               className="pl-9 bg-background/50 backdrop-blur-sm"
             />
           </div>
@@ -128,10 +142,12 @@ export function DataTable<TData, TValue>({
 
       <div className="flex items-center justify-between py-2">
         <div className="text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
+          Showing {firstVisibleRow}–{lastVisibleRow} of {filteredRowCount} row{filteredRowCount === 1 ? "" : "s"}.
         </div>
         <div className="flex items-center space-x-2">
+          <span className="mr-2 text-sm text-muted-foreground">
+            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+          </span>
           <Button
             variant="outline"
             size="sm"
