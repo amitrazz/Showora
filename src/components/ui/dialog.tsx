@@ -8,7 +8,11 @@ interface DialogProps {
   children: React.ReactNode;
 }
 
-export function Dialog({ children }: DialogProps) {
+export function Dialog({ open = false, children }: DialogProps) {
+  if (!open) {
+    return null;
+  }
+
   return <>{children}</>;
 }
 
