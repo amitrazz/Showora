@@ -13,7 +13,7 @@ export const customerService = {
     });
     return response.data;
   },
-  
+
   getCustomerById: async (id: string): Promise<Customer> => {
     const response = await api.get<Customer>(`/customers/${id}`);
     return response.data;
@@ -28,8 +28,8 @@ export const customerService = {
     const response = await api.post<Customer>('/customers', data);
     return response.data;
   },
-  
-  updateCustomer: async (id: string, data: any): Promise<Customer> => {
+
+  updateCustomer: async (id: string, data: CreateCustomerWizardForm): Promise<Customer> => {
     const response = await api.patch<Customer>(`/customers/${id}`, data);
     return response.data;
   }

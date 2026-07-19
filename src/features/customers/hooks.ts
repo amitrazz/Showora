@@ -44,3 +44,16 @@ export const useCreateCustomer = () => {
     }
   });
 };
+export const useUpdateCustomer = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string, data: CreateCustomerWizardForm }) => customerService.updateCustomer(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      toast.success("Customer updated successfully");
+    },
+    onError: () => {
+      toast.error("Failed to update customer");
+    }
+  });
+};

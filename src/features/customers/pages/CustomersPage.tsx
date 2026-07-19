@@ -5,7 +5,7 @@ import { StatsCard } from "@/components/common/StatsCard";
 import { formatCurrency } from "@/utils/formatters";
 import { ColumnDef } from "@tanstack/react-table";
 import { Customer } from "../types";
-import { Users, UserPlus, IndianRupee, HandCoins, Plus, Download, Upload, MoreHorizontal } from "lucide-react";
+import { Users, UserPlus, IndianRupee, HandCoins, Plus, Download, Upload, Eye, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -85,10 +85,19 @@ const customerColumns: ColumnDef<Customer>[] = [
   },
   {
     id: "actions",
-    cell: () => (
-      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-        <MoreHorizontal className="h-4 w-4" />
-      </Button>
+    cell: ({ row }) => (
+      <div className="flex items-center justify-end gap-1">
+        <Link to="/customers/$customerId" params={{ customerId: row.original.id }}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" title="View customer">
+            <Eye className="h-4 w-4" />
+          </Button>
+        </Link>
+        <Link to="/customers/$customerId/edit" params={{ customerId: row.original.id }}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" title="Edit customer">
+            <Pencil className="h-4 w-4" />
+          </Button>
+        </Link>
+      </div>
     ),
   },
 ];
@@ -119,7 +128,7 @@ export function CustomersPage() {
       <div className="flex h-[60vh] items-center justify-center">
         <div className="flex flex-col items-center gap-2">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground animate-pulse">Loading workspace...</p>
+          <p className="text-sm text-muted-foreground animate-pulse">Loading customers...</p>
         </div>
       </div>
     );

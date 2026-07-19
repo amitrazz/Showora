@@ -1,15 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createCustomerWizardSchema, CreateCustomerWizardForm } from "../schemas";
-import { useCreateCustomer } from "../hooks";
+import { useCreateCustomer, useCustomer, useUpdateCustomer } from "../hooks";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ChevronRight, ChevronLeft, Save } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useParams } from "@tanstack/react-router";
 
 const steps = [
   { id: "basic", title: "Basic Info" },
@@ -23,7 +23,16 @@ const steps = [
 export function CustomerWizardPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const navigate = useNavigate();
+  const { customerId } = useParams({ strict: false });
+  const { data: customer, isLoading } = useCustomer(customerId as string);
   const createMutation = useCreateCustomer();
+  const updateMutation = useUpdateCustomer();
+
+  const isEditMode = !!customerId;
+  const isSaving =
+    createMutation.isPending || updateMutation.isPending;
+
+  console.log(customerId, "customerId")
 
   const form = useForm<CreateCustomerWizardForm>({
     resolver: zodResolver(createCustomerWizardSchema) as any,
@@ -37,13 +46,58 @@ export function CustomerWizardPage() {
     mode: "onChange",
   });
 
-  const { register, handleSubmit, formState: { errors }, trigger, watch } = form;
+  const { register, handleSubmit, formState: { errors }, trigger, watch, reset } = form;
+
+  useEffect(() => {
+    if (!customer) return;
+
+    reset({
+      basic: {
+        firstName: customer.firstName ?? "",
+        lastName: customer.lastName ?? "",
+        phone: customer.phone ?? "",
+        email: customer.email ?? "",
+        gender: customer.gender ?? "male",
+        dob: customer.dob ?? "",
+      },
+
+      address: {
+        line1: customer.address?.line1 ?? "",
+        city: customer.address?.city ?? "",
+        state: customer.address?.state ?? "",
+        pincode: customer.address?.pincode ?? "",
+      },
+
+      identity: {
+        panNumber: customer.panNumber ?? "",
+        aadharNumber: customer.aadharNumber ?? "",
+        drivingLicense: customer.drivingLicense ?? "",
+        gstNumber: customer.gstNumber ?? "",
+      },
+
+      finance: {
+        required: customer.finance?.required ?? false,
+        company: customer.finance?.company ?? "",
+        loanAmount: customer.finance?.loanAmount ?? undefined,
+        tenureMonths: customer.finance?.tenureMonths ?? undefined,
+        emi: customer.finance?.emi ?? undefined,
+      },
+
+      additional: {
+        salesExecutive: customer.salesExecutive ?? "",
+        leadSource: customer.leadSource ?? "",
+        internalNotes:
+          customer.notes?.map((note) => note).join("\n") ?? "",
+        tags: customer.tags ?? [],
+      },
+    });
+  }, [customer, reset]);
 
   const handleNext = async () => {
     const stepIds = ["basic", "address", "identity", "finance", "additional", "review"] as const;
     const currentStepId = stepIds[currentStep];
     const isStepValid = currentStepId === "review" ? true : await trigger(currentStepId as any);
-    
+
     if (isStepValid) {
       setCurrentStep(s => Math.min(s + 1, steps.length - 1));
     }
@@ -53,16 +107,36 @@ export function CustomerWizardPage() {
     setCurrentStep(s => Math.max(s - 1, 0));
   };
 
-  const onSubmit = (data: any) => {
-    createMutation.mutate(data);
+  const onSubmit = (data: CreateCustomerWizardForm) => {
+    const onSuccess = () => {
+      navigate({
+        to: "/customers",
+      });
+    };
+
+    if (isEditMode) {
+      updateMutation.mutate(
+        {
+          id: customerId!,
+          data,
+        },
+        { onSuccess }
+      );
+    } else {
+      createMutation.mutate(data, { onSuccess });
+    }
   };
 
   const financeRequired = watch("finance.required");
 
+  if (isEditMode && isLoading) {
+    return <p>Loading...</p>;
+  }
+
   return (
     <div className="mx-auto max-w-4xl space-y-8 pb-12 animate-in fade-in duration-500">
-      <PageHeader 
-        title="Create Customer Workspace" 
+      <PageHeader
+        title="Create Customer Workspace"
         description="Add a new customer to the CRM."
         action={
           <Button variant="outline" onClick={() => navigate({ to: "/customers" })}>
@@ -80,11 +154,10 @@ export function CustomerWizardPage() {
             const isCurrent = currentStep === index;
             return (
               <div key={step.id} className="flex flex-col items-center gap-2 bg-background px-2 z-10 min-w-[80px]">
-                <div 
-                  className={`flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors ${
-                    isCompleted ? "bg-primary border-primary text-primary-foreground" :
+                <div
+                  className={`flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors ${isCompleted ? "bg-primary border-primary text-primary-foreground" :
                     isCurrent ? "border-primary text-primary" : "border-border text-muted-foreground"
-                  }`}
+                    }`}
                 >
                   {isCompleted ? <Check className="h-4 w-4" /> : <span className="text-sm font-medium">{index + 1}</span>}
                 </div>
@@ -204,7 +277,7 @@ export function CustomerWizardPage() {
                     <h3 className="text-lg font-medium">Finance Requirements</h3>
                     <p className="text-sm text-muted-foreground">Is the customer opting for a vehicle loan?</p>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2 p-4 border rounded-xl bg-muted/20">
                     <input type="checkbox" id="finance-req" className="w-4 h-4 rounded border-border text-primary focus:ring-primary" {...register("finance.required")} />
                     <label htmlFor="finance-req" className="text-sm font-medium cursor-pointer">Yes, customer requires finance</label>
@@ -263,7 +336,7 @@ export function CustomerWizardPage() {
                     <h3 className="text-lg font-medium">Review & Save</h3>
                     <p className="text-sm text-muted-foreground">Verify the details before creating the customer workspace.</p>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-muted/20 p-6 rounded-xl border border-border/50">
                     <div className="space-y-4">
                       <div>
@@ -295,13 +368,13 @@ export function CustomerWizardPage() {
               )}
             </AnimatePresence>
           </div>
-          
+
           {/* Footer Actions */}
           <div className="flex items-center justify-between border-t p-6 bg-muted/20">
             <Button variant="outline" onClick={handleBack} disabled={currentStep === 0} className="shadow-sm">
               <ChevronLeft className="mr-2 h-4 w-4" /> Back
             </Button>
-            
+
             {currentStep < steps.length - 1 ? (
               <Button onClick={handleNext} className="shadow-sm">
                 Next <ChevronRight className="ml-2 h-4 w-4" />
@@ -311,9 +384,11 @@ export function CustomerWizardPage() {
                 <Button variant="secondary" onClick={handleSubmit((d) => onSubmit(d))} disabled={createMutation.isPending} className="shadow-sm hidden sm:flex">
                   Save & Add Another
                 </Button>
-                <Button onClick={handleSubmit((d) => onSubmit(d))} disabled={createMutation.isPending} className="shadow-sm">
-                  {createMutation.isPending ? "Creating..." : "Save Workspace"}
-                  {!createMutation.isPending && <Save className="ml-2 h-4 w-4" />}
+                <Button onClick={handleSubmit((d) => onSubmit(d))} disabled={isSaving} className="shadow-sm">
+                  {isSaving
+                    ? (isEditMode ? "Updating..." : "Creating...")
+                    : (isEditMode ? "Update Customer" : "Save Workspace")}
+                  {!isSaving && <Save className="ml-2 h-4 w-4" />}
                 </Button>
               </div>
             )}
