@@ -111,3 +111,17 @@ export interface CustomerMetrics {
   totalRevenue: number;
   repeatCustomers: number;
 }
+
+export interface CustomerListResponse {
+  data: Customer[];
+  totalCount: number;
+  limit: number;
+  hasMore: boolean;
+  nextCursor: string | null;
+}
+
+export interface CustomerListOptions {
+  search?: string;
+  limit?: number;
+  cursor?: string;
+}

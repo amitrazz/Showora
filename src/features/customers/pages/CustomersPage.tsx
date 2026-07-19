@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@tanstack/react-router";
 import { EmptyState } from "@/components/common/EmptyState";
+import { useState } from "react";
 
 const customerColumns: ColumnDef<Customer>[] = [
   {
@@ -93,8 +94,25 @@ const customerColumns: ColumnDef<Customer>[] = [
 ];
 
 export function CustomersPage() {
-  const { data: customers, isLoading } = useCustomers();
+  const [cursor, setCursor] = useState<string | undefined>();
+  const [previousCursors, setPreviousCursors] = useState<(string | undefined)[]>([]);
+  const { data: customerPage, isLoading } = useCustomers({ cursor, limit: 10 });
   const { data: metrics } = useCustomerMetrics();
+
+  const customers = customerPage?.data ?? [];
+  const currentPageIndex = previousCursors.length;
+
+  const goToNextPage = () => {
+    if (!customerPage?.nextCursor) return;
+    setPreviousCursors((history) => [...history, cursor]);
+    setCursor(customerPage.nextCursor);
+  };
+
+  const goToPreviousPage = () => {
+    const previousCursor = previousCursors[previousCursors.length - 1];
+    setPreviousCursors((history) => history.slice(0, -1));
+    setCursor(previousCursor);
+  };
 
   if (isLoading) {
     return (
@@ -159,11 +177,20 @@ export function CustomersPage() {
         </div>
       )}
 
-      {customers && customers.length > 0 ? (
+      {customers.length > 0 ? (
         <DataTable
           columns={customerColumns}
           data={customers}
           searchKey="firstName"
+          serverPagination={{
+            pageIndex: currentPageIndex,
+            pageSize: customerPage?.limit ?? 10,
+            totalCount: customerPage?.totalCount ?? 0,
+            canPreviousPage: previousCursors.length > 0,
+            canNextPage: customerPage?.hasMore ?? false,
+            onPreviousPage: goToPreviousPage,
+            onNextPage: goToNextPage,
+          }}
         />
       ) : (
         <EmptyState

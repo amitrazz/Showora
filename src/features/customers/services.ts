@@ -1,13 +1,17 @@
-import { Customer, CustomerMetrics } from "./types";
+import { Customer, CustomerListOptions, CustomerListResponse, CustomerMetrics } from "./types";
 import { CreateCustomerWizardForm } from "./schemas";
 import { api } from "@/lib/api";
 
 export const customerService = {
-  getCustomers: async (search?: string): Promise<Customer[] | any> => {
-    const response = await api.get<{ data: Customer[] }>('/customers', {
-      params: search ? { search } : undefined
+  getCustomers: async ({ search, limit = 10, cursor }: CustomerListOptions = {}): Promise<CustomerListResponse> => {
+    const response = await api.get<CustomerListResponse>('/customers', {
+      params: {
+        ...(search ? { search } : {}),
+        limit,
+        ...(cursor ? { cursor } : {}),
+      },
     });
-    return response.data.data;
+    return response.data;
   },
   
   getCustomerById: async (id: string): Promise<Customer> => {

@@ -44,7 +44,11 @@ export function SalesWizardPage() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const { data: customerSearchResults, isLoading: isCustomersLoading } = useCustomers(debouncedSearchTerm);
+  const { data: customerSearchPage, isLoading: isCustomersLoading } = useCustomers({
+    search: debouncedSearchTerm,
+    limit: 10,
+  });
+  const customerSearchResults = customerSearchPage?.data ?? [];
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

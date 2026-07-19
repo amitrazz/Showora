@@ -1,13 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { customerService } from "./services";
+import { CustomerListOptions } from "./types";
 import { CreateCustomerWizardForm } from "./schemas";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
 
-export const useCustomers = (search?: string) => {
+export const useCustomers = (options: CustomerListOptions = {}) => {
   return useQuery({
-    queryKey: ["customers", search],
-    queryFn: () => customerService.getCustomers(search),
+    queryKey: ["customers", options],
+    queryFn: () => customerService.getCustomers(options),
   });
 };
 

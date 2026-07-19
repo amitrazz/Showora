@@ -27,19 +27,31 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   searchKey?: string; // column key to filter globally, e.g., "name" or "customerName"
+  pageSize?: number;
+  serverPagination?: {
+    pageIndex: number;
+    pageSize: number;
+    totalCount: number;
+    canPreviousPage: boolean;
+    canNextPage: boolean;
+    onPreviousPage: () => void;
+    onNextPage: () => void;
+  };
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   searchKey,
+  pageSize = 10,
+  serverPagination,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [rowSelection, setRowSelection] = useState({});
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
-    pageSize: 10,
+    pageSize,
   });
 
   const table = useReactTable({
@@ -62,10 +74,12 @@ export function DataTable<TData, TValue>({
   });
 
   const selectedCount = Object.keys(rowSelection).length;
-  const filteredRowCount = table.getFilteredRowModel().rows.length;
-  const { pageIndex, pageSize } = table.getState().pagination;
-  const firstVisibleRow = filteredRowCount === 0 ? 0 : pageIndex * pageSize + 1;
-  const lastVisibleRow = Math.min((pageIndex + 1) * pageSize, filteredRowCount);
+  const filteredRowCount = serverPagination?.totalCount ?? table.getFilteredRowModel().rows.length;
+  const { pageIndex: localPageIndex, pageSize: localPageSize } = table.getState().pagination;
+  const pageIndex = serverPagination?.pageIndex ?? localPageIndex;
+  const currentPageSize = serverPagination?.pageSize ?? localPageSize;
+  const firstVisibleRow = filteredRowCount === 0 ? 0 : pageIndex * currentPageSize + 1;
+  const lastVisibleRow = Math.min((pageIndex + 1) * currentPageSize, filteredRowCount);
 
   return (
     <div className="space-y-4">
@@ -146,13 +160,13 @@ export function DataTable<TData, TValue>({
         </div>
         <div className="flex items-center space-x-2">
           <span className="mr-2 text-sm text-muted-foreground">
-            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+            Page {pageIndex + 1} of {serverPagination ? Math.ceil(serverPagination.totalCount / serverPagination.pageSize) : table.getPageCount()}
           </span>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            onClick={serverPagination?.onPreviousPage ?? (() => table.previousPage())}
+            disabled={serverPagination ? !serverPagination.canPreviousPage : !table.getCanPreviousPage()}
             className="h-8 shadow-none"
           >
             Previous
@@ -160,8 +174,8 @@ export function DataTable<TData, TValue>({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            onClick={serverPagination?.onNextPage ?? (() => table.nextPage())}
+            disabled={serverPagination ? !serverPagination.canNextPage : !table.getCanNextPage()}
             className="h-8 shadow-none"
           >
             Next
