@@ -1,6 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
-import { useSidebarStore, useAuthStore, useTenantStore } from "@/store";
+import { useSidebarStore, useAuthStore } from "@/store";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   LayoutDashboard, 
@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useLogout } from "@/features/auth/hooks";
+import { useGeneralSettings } from "@/features/settings/hooks";
 
 const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -30,12 +31,12 @@ const navItems = [
   { name: "Expenses", href: "/expenses", icon: Wallet },
   { name: "Reports", href: "/reports", icon: BarChart3 },
   { name: "Settings", href: "/settings", icon: SettingsIcon },
-];
+] as const;
 
 export function Sidebar() {
   const { isOpen, toggle } = useSidebarStore();
   const { user } = useAuthStore();
-  const { currentTenant } = useTenantStore();
+  const { data: generalSettings } = useGeneralSettings();
   const location = useLocation();
   const logoutMutation = useLogout();
 
@@ -60,7 +61,7 @@ export function Sidebar() {
                 exit={{ opacity: 0, x: -10 }}
                 className="flex flex-col whitespace-nowrap"
               >
-                <span className="text-sm font-bold leading-none">{currentTenant?.name}</span>
+                <span className="text-sm font-bold leading-none">{generalSettings?.showroomName || "Showora"}</span>
                 <span className="text-xs text-muted-foreground">Free Plan</span>
               </motion.div>
             )}
@@ -101,7 +102,7 @@ export function Sidebar() {
           return (
             <Link
               key={item.name}
-              to={item.href as any}
+              to={item.href}
               className={cn(
                 "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 group",
                 isActive 

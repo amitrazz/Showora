@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { useParams, Link } from "@tanstack/react-router";
-import { useSale } from "../hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/utils/formatters";
 import { format, formatDistanceToNow } from "date-fns";
 import { Truck, Building, MoreHorizontal, FileText, IndianRupee, Shield, Clock, Check, Download, CreditCard, Banknote, User } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useSale, useRecordSalesPayment } from "../hooks";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+
 
 const tabs = [
   { id: "overview", label: "Overview" },
@@ -21,6 +24,39 @@ export function SalesWorkspacePage() {
   const { saleId } = useParams({ strict: false });
   const { data: sale, isLoading } = useSale(saleId as string);
   const [activeTab, setActiveTab] = useState("overview");
+
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("Bank Transfer");
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [referenceId, setReferenceId] = useState("");
+
+  const recordPaymentMutation = useRecordSalesPayment(saleId as string);
+
+  const openPaymentModal = () => {
+    if (sale) {
+      setPaymentAmount(sale.outstandingBalance.toString());
+      setPaymentMethod("Bank Transfer");
+      setReferenceId("");
+      setIsPaymentModalOpen(true);
+    }
+  };
+
+  const handleRecordPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!paymentAmount || parseFloat(paymentAmount) <= 0) return;
+    recordPaymentMutation.mutate({
+      amount: parseFloat(paymentAmount),
+      method: paymentMethod,
+      referenceId: referenceId,
+    }, {
+      onSuccess: () => {
+        setIsPaymentModalOpen(false);
+        setPaymentAmount("");
+        setReferenceId("");
+      }
+    });
+  };
+
 
   if (isLoading) {
     return (
@@ -52,10 +88,10 @@ export function SalesWorkspacePage() {
     <div className="space-y-6 pb-12 animate-in fade-in duration-500">
       {/* Header Profile Card */}
       <div className="bg-card rounded-2xl border border-border/50 shadow-sm overflow-hidden">
-        
+
         <div className="px-6 sm:px-10 py-6">
           <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
-            
+
             <div className="flex-1 space-y-1 w-full">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
                 <div className="space-y-2">
@@ -66,15 +102,15 @@ export function SalesWorkspacePage() {
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground flex items-center gap-4">
-                    <span className="font-medium text-foreground flex items-center gap-1.5"><User className="h-4 w-4"/> {sale.customerName}</span>
-                    <span className="hidden sm:flex items-center gap-1.5"><Truck className="h-4 w-4"/> {sale.vehicleMake} {sale.vehicleModel}</span>
+                    <span className="font-medium text-foreground flex items-center gap-1.5"><User className="h-4 w-4" /> {sale.customerName}</span>
+                    <span className="hidden sm:flex items-center gap-1.5"><Truck className="h-4 w-4" /> {sale.vehicleMake} {sale.vehicleModel}</span>
                     <span className="hidden sm:flex items-center gap-1.5 font-mono">• {format(new Date(sale.saleDate), 'dd MMM yyyy')}</span>
                   </p>
                 </div>
-                
+
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                   {sale.outstandingBalance > 0 && (
-                    <Button variant="outline" className="shadow-sm">
+                    <Button onClick={openPaymentModal} variant="outline" className="shadow-sm">
                       <CreditCard className="mr-2 h-4 w-4" />
                       Record Payment
                     </Button>
@@ -90,7 +126,7 @@ export function SalesWorkspacePage() {
               </div>
             </div>
           </div>
-          
+
           {/* Quick Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 mt-6 border-t border-border/50">
             <div>
@@ -120,9 +156,8 @@ export function SalesWorkspacePage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`relative py-4 px-4 text-sm font-medium transition-colors whitespace-nowrap ${
-                activeTab === tab.id ? "text-primary" : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={`relative py-4 px-4 text-sm font-medium transition-colors whitespace-nowrap ${activeTab === tab.id ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                }`}
             >
               {tab.label}
               {activeTab === tab.id && (
@@ -137,7 +172,7 @@ export function SalesWorkspacePage() {
       <div className="min-h-[400px]">
         {activeTab === "overview" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            
+
             <div className="lg:col-span-2 space-y-6">
               {/* Linked Entities */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -184,7 +219,7 @@ export function SalesWorkspacePage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6">
-                   <div className="space-y-4 text-sm">
+                  <div className="space-y-4 text-sm">
                     <div className="flex justify-between"><span className="text-muted-foreground">Ex-Showroom Price</span><span className="font-mono">{formatCurrency(sale.basePrice)}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Accessories</span><span className="font-mono">{formatCurrency(sale.accessoriesPrice)}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">RTO / Registration</span><span className="font-mono">{formatCurrency(sale.registrationTax)}</span></div>
@@ -274,7 +309,7 @@ export function SalesWorkspacePage() {
                     <span className="font-mono font-medium text-emerald-600">+{formatCurrency(payment.amount)}</span>
                   </div>
                 ))}
-                
+
                 {sale.outstandingBalance > 0 && (
                   <div className="flex justify-between items-center p-4 rounded-xl border border-dashed border-destructive/50 bg-destructive/5 mt-6">
                     <div className="flex items-center gap-4">
@@ -313,8 +348,8 @@ export function SalesWorkspacePage() {
                       <div>
                         <p className="text-sm font-medium text-muted-foreground mb-1">Application Status</p>
                         <Badge variant="outline" className={
-                          sale.finance.status === 'Approved' || sale.finance.status === 'Disbursed' 
-                          ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'
+                          sale.finance.status === 'Approved' || sale.finance.status === 'Disbursed'
+                            ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'
                         }>{sale.finance.status}</Badge>
                       </div>
                       <div>
@@ -365,22 +400,106 @@ export function SalesWorkspacePage() {
         )}
 
         {activeTab === "delivery" && (
-           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border rounded-2xl bg-card border-dashed">
-             <Truck className="h-10 w-10 mb-4 opacity-50" />
-             <p>Delivery Checklist module coming soon</p>
-           </div>
+          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border rounded-2xl bg-card border-dashed">
+            <Truck className="h-10 w-10 mb-4 opacity-50" />
+            <p>Delivery Checklist module coming soon</p>
+          </div>
         )}
 
         {activeTab === "invoice" && (
-           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border rounded-2xl bg-card border-dashed">
-             <FileText className="h-10 w-10 mb-4 opacity-50" />
-             <p>Invoice PDF generation coming soon</p>
-             <Button className="mt-4 shadow-sm"><Download className="mr-2 h-4 w-4"/> Preview Draft Invoice</Button>
-           </div>
+          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border rounded-2xl bg-card border-dashed">
+            <FileText className="h-10 w-10 mb-4 opacity-50" />
+            <p>Invoice PDF generation coming soon</p>
+            <Button className="mt-4 shadow-sm"><Download className="mr-2 h-4 w-4" /> Preview Draft Invoice</Button>
+          </div>
         )}
       </div>
+
+      <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+        <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden border-none shadow-premium rounded-2xl bg-background animate-in fade-in zoom-in duration-300">
+          <div className="p-6 sm:p-8">
+            <h3 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              <IndianRupee className="h-5 w-5 text-emerald-500" />
+              Record Payment Collection
+            </h3>
+            <p className="text-sm text-muted-foreground mt-2">
+              Add a payment transaction for Sale Reference <span className="font-mono font-medium text-foreground">{sale.invoiceNumber || sale.id}</span>.
+            </p>
+
+            <form onSubmit={handleRecordPayment} className="space-y-5 mt-6">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Amount (INR)</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 text-muted-foreground font-medium">₹</span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    max={sale.outstandingBalance}
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    className="pl-8 font-mono text-base font-semibold"
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground flex justify-between">
+                  <span>Max outstanding balance:</span>
+                  <span className="font-mono font-medium">{formatCurrency(sale.outstandingBalance)}</span>
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Payment Method</label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <option value="Cash">Cash</option>
+                  <option value="UPI">UPI / QR Code</option>
+                  <option value="Bank Transfer">Bank Transfer (NEFT/RTGS/IMPS)</option>
+                  <option value="Credit Card">Credit Card</option>
+                  <option value="Debit Card">Debit Card</option>
+                  <option value="Cheque">Cheque</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Transaction / Reference ID</label>
+                <Input
+                  type="text"
+                  value={referenceId}
+                  onChange={(e) => setReferenceId(e.target.value)}
+                  placeholder="e.g. TXN928374981"
+                  className="font-mono uppercase"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setIsPaymentModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  disabled={recordPaymentMutation.isPending}
+                >
+                  {recordPaymentMutation.isPending ? "Recording..." : "Record Payment"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 // Temporary mock component export to resolve imports quickly
-const ChevronRight = ({className}: {className?: string}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m9 18 6-6-6-6"/></svg>
+const ChevronRight = ({ className }: { className?: string }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m9 18 6-6-6-6" /></svg>

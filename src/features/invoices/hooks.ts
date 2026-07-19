@@ -48,3 +48,27 @@ export const useCreateInvoice = () => {
     },
   });
 };
+
+export const useRecordInvoicePayment = (id: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { amount: number; method: string; referenceId: string }) =>
+      invoiceService.recordPayment(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices', id] });
+      queryClient.invalidateQueries({ queryKey: ['invoice-metrics'] });
+
+      toast.success('Payment Recorded', {
+        description: 'Invoice payment has been registered successfully.',
+      });
+    },
+    onError: (error: any) => {
+      toast.error('Failed to record Payment', {
+        description: error.message || 'Error occurred while saving payment.',
+      });
+    },
+  });
+};
+

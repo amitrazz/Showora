@@ -3,8 +3,10 @@ import { CreateCustomerWizardForm } from "./schemas";
 import { api } from "@/lib/api";
 
 export const customerService = {
-  getCustomers: async (): Promise<Customer[]> => {
-    const response = await api.get<{ data: Customer[] }>('/customers');
+  getCustomers: async (search?: string): Promise<Customer[] | any> => {
+    const response = await api.get<{ data: Customer[] }>('/customers', {
+      params: search ? { search } : undefined
+    });
     return response.data.data;
   },
   

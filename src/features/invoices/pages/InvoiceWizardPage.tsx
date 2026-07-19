@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createInvoiceWizardSchema, CreateInvoiceWizardForm } from "../schemas";
@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, ChevronRight, ChevronLeft, Save, IndianRupee, Banknote, Search, Calendar, User, FileText } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { formatCurrency } from "@/utils/formatters";
+import { useSales } from "../../sales/hooks";
 
 const steps = [
   { id: "sale", title: "Link Sale" },
@@ -25,18 +26,62 @@ export function InvoiceWizardPage() {
   const navigate = useNavigate();
   const createMutation = useCreateInvoice();
 
+  const { data: salesList } = useSales();
+  const sales = salesList || [];
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
   const form = useForm<CreateInvoiceWizardForm>({
     resolver: zodResolver(createInvoiceWizardSchema) as any,
     defaultValues: {
       sale: { saleId: "" },
       metadata: { invoiceDate: new Date().toISOString().split('T')[0], dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], salesExecutive: "Rajesh Kumar", branch: "Downtown Main Showroom" },
-      pricing: { basePrice: 215000, accessoriesPrice: 0, registrationTax: 21500, insurance: 8500, otherCharges: 0, discount: 0, gstRate: 28 },
+      pricing: { basePrice: 0, accessoriesPrice: 0, registrationTax: 0, insurance: 0, otherCharges: 0, discount: 0, gstRate: 28 },
       payment: { amountPaid: 0, method: "Bank Transfer" },
     },
     mode: "onChange",
   });
 
-  const { register, trigger, watch, handleSubmit, formState: { errors } } = form;
+  const { register, trigger, watch, handleSubmit, setValue, formState: { errors } } = form;
+
+  const selectedSaleId = watch("sale.saleId");
+  const selectedSale = sales.find(s => s.invoiceNumber === selectedSaleId || s.id === selectedSaleId);
+
+  const filteredSales = sales.filter(s => 
+    s && 
+    ((s.invoiceNumber && s.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
+     (s.customerName && s.customerName.toLowerCase().includes(searchTerm.toLowerCase())))
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (selectedSale) {
+      setValue("metadata.salesExecutive", selectedSale.salesExecutive || "", { shouldValidate: true });
+      setValue("metadata.branch", selectedSale.branch || "", { shouldValidate: true });
+      setValue("pricing.basePrice", selectedSale.basePrice || 0, { shouldValidate: true });
+      setValue("pricing.accessoriesPrice", selectedSale.accessoriesPrice || 0, { shouldValidate: true });
+      setValue("pricing.registrationTax", selectedSale.registrationTax || 0, { shouldValidate: true });
+      setValue("pricing.insurance", selectedSale.insurance || 0, { shouldValidate: true });
+      setValue("pricing.discount", selectedSale.discount || 0, { shouldValidate: true });
+      setValue("payment.amountPaid", selectedSale.totalPaid || 0, { shouldValidate: true });
+      
+      const calculatedGstRate = selectedSale.basePrice > 0 ? Math.round((selectedSale.gstAmount / (selectedSale.basePrice - selectedSale.discount)) * 100) : 28;
+      setValue("pricing.gstRate", calculatedGstRate === 18 ? 18 : 28, { shouldValidate: true });
+    }
+  }, [selectedSale, setValue]);
   
   // Live Pricing
   const p = watch("pricing");
@@ -121,14 +166,92 @@ export function InvoiceWizardPage() {
                         <p className="text-sm text-muted-foreground">Link this invoice to an existing approved sale.</p>
                       </div>
                       <div className="space-y-4 pt-4">
-                        <div className="space-y-2">
+                        <div className="space-y-2 relative" ref={dropdownRef}>
                           <label className="text-sm font-medium">Sale ID / Reservation Number *</label>
-                          <Input {...register("sale.saleId")} placeholder="e.g. SALE-2026-1045" className="h-10 bg-muted/50" />
+                          {selectedSaleId && selectedSale ? (
+                            <div className="flex items-center justify-between p-4 rounded-lg border border-border/80 bg-primary/5 animate-in fade-in duration-200">
+                              <div className="space-y-1">
+                                <p className="text-sm font-semibold text-foreground">
+                                  {selectedSale.invoiceNumber}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Customer: {selectedSale.customerName} | Vehicle: {selectedSale.vehicleMake} {selectedSale.vehicleModel}
+                                </p>
+                              </div>
+                              <Button 
+                                type="button" 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => {
+                                  setValue("sale.saleId", "", { shouldValidate: true });
+                                  setSearchTerm("");
+                                }}
+                              >
+                                Change
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="relative">
+                              <Input 
+                                type="text"
+                                placeholder="Type Sale ID or Customer name to search..."
+                                value={searchTerm}
+                                onChange={(e) => {
+                                  setSearchTerm(e.target.value);
+                                  setIsDropdownOpen(true);
+                                }}
+                                onFocus={() => setIsDropdownOpen(true)}
+                                className="bg-muted/50 pr-10"
+                              />
+                              <AnimatePresence>
+                                {isDropdownOpen && (
+                                  <motion.div 
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    className="absolute z-50 w-full mt-1 bg-background/95 backdrop-blur-md border border-border/60 rounded-xl shadow-xl max-h-60 overflow-y-auto divide-y divide-border/50 animate-in fade-in slide-in-from-top-1 overflow-hidden"
+                                  >
+                                    {filteredSales && filteredSales.length > 0 ? (
+                                      <div className="py-1">
+                                        {filteredSales.map((s: any) => (
+                                          <button
+                                            key={s.id}
+                                            type="button"
+                                            onClick={() => {
+                                              setValue("sale.saleId", s.invoiceNumber || s.id || "", { shouldValidate: true });
+                                              setIsDropdownOpen(false);
+                                            }}
+                                            className="w-full text-left px-4 py-3 text-sm hover:bg-primary/5 active:bg-primary/10 transition-colors flex items-center justify-between group outline-none"
+                                          >
+                                            <div className="flex flex-col gap-0.5">
+                                              <span className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                                                {s.invoiceNumber || `Sale #${s.id.slice(0, 8)}`}
+                                              </span>
+                                              <span className="text-xs text-muted-foreground">
+                                                Customer: {s.customerName || "N/A"}
+                                                {s.vehicleMake ? ` • ${s.vehicleMake} ${s.vehicleModel}` : ""}
+                                              </span>
+                                            </div>
+                                            <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                                          </button>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <div className="px-4 py-6 text-sm text-muted-foreground text-center">
+                                        No sales found
+                                      </div>
+                                    )}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          )}
+                          <input type="hidden" {...register("sale.saleId")} />
                           {errors.sale?.saleId && <p className="text-xs text-destructive">{errors.sale.saleId.message}</p>}
                         </div>
                         <div className="p-4 rounded-xl border border-dashed bg-muted/20 text-sm text-muted-foreground flex items-start gap-3">
                           <FileText className="h-5 w-5 mt-0.5 text-primary" />
-                          <p>In a production environment, entering the Sale ID would automatically auto-fill the entire pricing, customer, and vehicle inventory schema for you.</p>
+                          <p>Selecting a Sale ID will automatically populate the entire pricing, customer, and vehicle inventory schema for you. You can still manually override any field in the next steps.</p>
                         </div>
                       </div>
                     </motion.div>
@@ -173,33 +296,33 @@ export function InvoiceWizardPage() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4">
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Ex-Showroom Base Price (₹)</label>
-                          <Input type="number" {...register("pricing.basePrice", { valueAsNumber: true })} className="bg-muted/50 font-mono" />
+                          <Input type="number" {...register("pricing.basePrice")} className="bg-muted/50 font-mono" />
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Accessories Total (₹)</label>
-                          <Input type="number" {...register("pricing.accessoriesPrice", { valueAsNumber: true })} className="bg-muted/50 font-mono" />
+                          <Input type="number" {...register("pricing.accessoriesPrice")} className="bg-muted/50 font-mono" />
                         </div>
                         <div className="space-y-2 border-l-2 pl-4 border-emerald-500/50 py-1">
                           <label className="text-sm font-medium">GST Rate (%)</label>
-                          <select {...register("pricing.gstRate", { valueAsNumber: true })} className="flex h-10 w-full rounded-md border border-input bg-emerald-500/5 px-3 py-2 text-sm text-emerald-700 focus-visible:outline-none">
+                          <select {...register("pricing.gstRate")} className="flex h-10 w-full rounded-md border border-input bg-emerald-500/5 px-3 py-2 text-sm text-emerald-700 focus-visible:outline-none">
                             <option value={28}>28% (Standard 2-Wheeler)</option>
                             <option value={18}>18% (EV/Sub-segment)</option>
                           </select>
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-destructive">Discount (₹)</label>
-                          <Input type="number" {...register("pricing.discount", { valueAsNumber: true })} className="bg-destructive/5 font-mono text-destructive" />
+                          <Input type="number" {...register("pricing.discount")} className="bg-destructive/5 font-mono text-destructive" />
                         </div>
                         <div className="col-span-1 sm:col-span-2 border-t pt-4">
                           <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-4">Non-Taxable Logistics & RTO</h4>
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Registration & Road Tax (₹)</label>
-                          <Input type="number" {...register("pricing.registrationTax", { valueAsNumber: true })} className="bg-muted/50 font-mono" />
+                          <Input type="number" {...register("pricing.registrationTax")} className="bg-muted/50 font-mono" />
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Insurance Premium (₹)</label>
-                          <Input type="number" {...register("pricing.insurance", { valueAsNumber: true })} className="bg-muted/50 font-mono" />
+                          <Input type="number" {...register("pricing.insurance")} className="bg-muted/50 font-mono" />
                         </div>
                       </div>
                     </motion.div>
@@ -214,7 +337,7 @@ export function InvoiceWizardPage() {
                       <div className="grid grid-cols-1 gap-6 pt-4 max-w-md">
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Amount Received (₹)</label>
-                          <Input type="number" {...register("payment.amountPaid", { valueAsNumber: true })} className="bg-muted/50 font-mono text-lg" />
+                          <Input type="number" {...register("payment.amountPaid")} className="bg-muted/50 font-mono text-lg" />
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Payment Mode</label>

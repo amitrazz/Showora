@@ -1,12 +1,13 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
-import { useGeneralSettings } from "../hooks";
+import { useGeneralSettings, useUpdateGeneralSettings } from "../hooks";
 import { generalSettingsSchema, GeneralSettingsFormValues } from "../schemas";
 import { Input } from "@/components/ui/input";
 
-export const GeneralSettingsView = ({ onDirty }: { onDirty: () => void }) => {
+export const GeneralSettingsView = ({ onDirty, onSaved }: { onDirty: () => void; onSaved: () => void }) => {
   const { data, isLoading } = useGeneralSettings();
+  const { mutate: updateGeneralSettings } = useUpdateGeneralSettings();
 
   const form = useForm<GeneralSettingsFormValues>({
     resolver: zodResolver(generalSettingsSchema),
@@ -37,15 +38,24 @@ export const GeneralSettingsView = ({ onDirty }: { onDirty: () => void }) => {
   const { errors } = form.formState;
   const SelectClass = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
+  const onSubmit = form.handleSubmit((values) => {
+    updateGeneralSettings(values, {
+      onSuccess: (settings) => {
+        form.reset(settings);
+        onSaved();
+      },
+    });
+  });
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div>
         <h2 className="text-xl font-medium tracking-tight">General Settings</h2>
         <p className="text-sm text-muted-foreground mt-1">Configure your primary showroom details and localizations.</p>
       </div>
-      
-      <form className="space-y-8">
-        
+
+      <form id="general-settings-form" onSubmit={onSubmit} className="space-y-8">
+
         <div className="space-y-6">
           <div className="space-y-2">
             <label className="text-sm font-medium">Showroom Name</label>
@@ -53,7 +63,7 @@ export const GeneralSettingsView = ({ onDirty }: { onDirty: () => void }) => {
             <p className="text-xs text-muted-foreground">This is your dealership's internal display name.</p>
             {errors.showroomName && <p className="text-xs text-destructive">{errors.showroomName.message}</p>}
           </div>
-          
+
           <div className="space-y-2">
             <label className="text-sm font-medium">Business Type</label>
             <select {...form.register("businessType")} className={`${SelectClass} max-w-md`}>
@@ -67,8 +77,8 @@ export const GeneralSettingsView = ({ onDirty }: { onDirty: () => void }) => {
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Business Description</label>
-            <textarea 
-              {...form.register("businessDescription")} 
+            <textarea
+              {...form.register("businessDescription")}
               className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 max-w-xl resize-none h-24"
             />
             {errors.businessDescription && <p className="text-xs text-destructive">{errors.businessDescription.message}</p>}
@@ -97,6 +107,16 @@ export const GeneralSettingsView = ({ onDirty }: { onDirty: () => void }) => {
               <option value="USD ($)">USD ($)</option>
             </select>
             {errors.currency && <p className="text-xs text-destructive">{errors.currency.message}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Language</label>
+            <select {...form.register("language")} className={SelectClass}>
+              <option value="">Select language</option>
+              <option value="en-IN">English (India)</option>
+              <option value="hi-IN">Hindi (India)</option>
+            </select>
+            {errors.language && <p className="text-xs text-destructive">{errors.language.message}</p>}
           </div>
 
           <div className="space-y-2">

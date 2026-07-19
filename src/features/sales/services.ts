@@ -49,5 +49,10 @@ export const salesService = {
 
     const response = await api.post<SalesRecord>('/sales', payload);
     return response.data;
+  },
+
+  recordPayment: async (id: string, data: { amount: number; method: string; referenceId: string }): Promise<any> => {
+    const response = await api.post(`/sales/${id}/payments`, data);
+    return response.data;
   }
 };

@@ -1,12 +1,13 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
-import { useOrganizationSettings } from "../hooks";
+import { useOrganizationSettings, useUpdateOrganizationSettings } from "../hooks";
 import { organizationSettingsSchema, OrganizationSettingsFormValues } from "../schemas";
 import { Input } from "@/components/ui/input";
 
-export const OrganizationSettingsView = ({ onDirty }: { onDirty: () => void }) => {
+export const OrganizationSettingsView = ({ onDirty, onSaved }: { onDirty: () => void; onSaved: () => void }) => {
   const { data, isLoading } = useOrganizationSettings();
+  const { mutate: updateOrganizationSettings } = useUpdateOrganizationSettings();
 
   const form = useForm<OrganizationSettingsFormValues>({
     resolver: zodResolver(organizationSettingsSchema),
@@ -35,6 +36,15 @@ export const OrganizationSettingsView = ({ onDirty }: { onDirty: () => void }) =
 
   const { errors } = form.formState;
 
+  const onSubmit = form.handleSubmit((values) => {
+    updateOrganizationSettings(values, {
+      onSuccess: (settings) => {
+        form.reset(settings);
+        onSaved();
+      },
+    });
+  });
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div>
@@ -42,7 +52,7 @@ export const OrganizationSettingsView = ({ onDirty }: { onDirty: () => void }) =
         <p className="text-sm text-muted-foreground mt-1">These details are used on all official documents, invoices, and communications.</p>
       </div>
       
-      <form className="space-y-6 max-w-2xl">
+      <form id="organization-settings-form" onSubmit={onSubmit} className="space-y-6 max-w-2xl">
         
         <div className="space-y-2">
           <label className="text-sm font-medium">Legal Business Name</label>

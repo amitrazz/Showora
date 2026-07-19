@@ -1,5 +1,6 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsService } from './services';
+import { GeneralSettings, OrganizationSettings } from './types';
 import { toast } from 'sonner';
 
 export const useGeneralSettings = () => {
@@ -9,10 +10,40 @@ export const useGeneralSettings = () => {
   });
 };
 
+export const useUpdateGeneralSettings = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: GeneralSettings) => settingsService.updateGeneralSettings(data),
+    onSuccess: (settings) => {
+      queryClient.setQueryData(['settings', 'general'], settings);
+      toast.success('General settings saved successfully');
+    },
+    onError: () => {
+      toast.error('Failed to save general settings. Please try again.');
+    },
+  });
+};
+
 export const useOrganizationSettings = () => {
   return useQuery({
     queryKey: ['settings', 'organization'],
     queryFn: () => settingsService.getOrganizationSettings(),
+  });
+};
+
+export const useUpdateOrganizationSettings = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: OrganizationSettings) => settingsService.updateOrganizationSettings(data),
+    onSuccess: (settings) => {
+      queryClient.setQueryData(['settings', 'organization'], settings);
+      toast.success('Organization settings saved successfully');
+    },
+    onError: () => {
+      toast.error('Failed to save organization settings. Please try again.');
+    },
   });
 };
 

@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const generalSettingsSchema = z.object({
   showroomName: z.string().min(2, "Showroom name is required"),
   businessType: z.string().min(1, "Business type is required"),
-  businessDescription: z.string().optional(),
+  businessDescription: z.string(),
   timezone: z.string().min(1, "Timezone is required"),
   currency: z.string().min(1, "Currency is required"),
   language: z.string().min(1, "Language is required"),
@@ -20,7 +20,7 @@ export const organizationSettingsSchema = z.object({
   address: z.string().min(5, "Address is required"),
   email: z.string().email("Valid email is required"),
   phone: z.string().min(10, "Valid phone number is required"),
-  website: z.string().url("Valid URL is required").optional().or(z.literal('')),
+  website: z.string().url("Valid URL is required").or(z.literal('')),
 });
 
 export type OrganizationSettingsFormValues = z.infer<typeof organizationSettingsSchema>;

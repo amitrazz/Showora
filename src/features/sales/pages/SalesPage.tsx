@@ -5,8 +5,8 @@ import { StatsCard } from "@/components/common/StatsCard";
 import { formatCurrency } from "@/utils/formatters";
 import { ColumnDef } from "@tanstack/react-table";
 import { SalesRecord } from "../types";
-import { 
-  Plus, Download, Upload, MoreHorizontal, 
+import {
+  Plus, Download, Upload, MoreHorizontal,
   IndianRupee, TrendingUp, HandCoins, Truck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,8 @@ const salesColumns: ColumnDef<SalesRecord>[] = [
     header: "Sale ID / Invoice",
     cell: ({ row }) => (
       <div className="flex flex-col">
-        <Link 
-          to="/sales/$saleId" 
+        <Link
+          to="/sales/$saleId"
           params={{ saleId: row.original.id }}
           className="text-sm font-mono font-medium hover:text-primary transition-colors hover:underline"
         >
@@ -38,8 +38,8 @@ const salesColumns: ColumnDef<SalesRecord>[] = [
       const sale = row.original;
       return (
         <div className="flex flex-col">
-          <Link 
-            to="/customers/$customerId" 
+          <Link
+            to="/customers/$customerId"
             params={{ customerId: sale.customerId }}
             className="text-sm font-medium hover:text-primary transition-colors hover:underline"
           >
@@ -131,8 +131,8 @@ export function SalesPage() {
 
   return (
     <div className="space-y-8 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <PageHeader 
-        title="Sales" 
+      <PageHeader
+        title="Sales"
         description="Manage vehicle sales, payments, delivery, and finance."
         action={
           <div className="flex items-center gap-3">
@@ -183,13 +183,13 @@ export function SalesPage() {
       )}
 
       {sales && sales.length > 0 ? (
-        <DataTable 
-          columns={salesColumns} 
-          data={sales} 
-          searchKey="invoiceNumber" 
+        <DataTable
+          columns={salesColumns}
+          data={sales}
+          searchKey="invoiceNumber"
         />
       ) : (
-        <EmptyState 
+        <EmptyState
           title="No Sales Yet"
           description="Create your first sale to start tracking revenue."
           icon={<IndianRupee />}

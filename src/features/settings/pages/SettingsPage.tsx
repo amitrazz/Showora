@@ -13,8 +13,8 @@ import { AuditLogsView } from "../components/AuditLogsView";
 import { RoleSettingsView } from "../components/RoleSettingsView";
 import { SecuritySettingsView } from "../components/SecuritySettingsView";
 
-type SettingsTab = 
-  | 'general' | 'organization' | 'branch' | 'users' | 'roles' 
+type SettingsTab =
+  | 'general' | 'organization' | 'branch' | 'users' | 'roles'
   | 'sales' | 'inventory' | 'purchases' | 'invoices' | 'expenses' | 'taxes'
   | 'notifications' | 'integrations' | 'appearance' | 'security' | 'audit' | 'backup';
 
@@ -64,8 +64,8 @@ export function SettingsPage() {
 
   const renderActiveView = () => {
     switch (activeTab) {
-      case 'general': return <GeneralSettingsView onDirty={() => setHasUnsavedChanges(true)} />;
-      case 'organization': return <OrganizationSettingsView onDirty={() => setHasUnsavedChanges(true)} />;
+      case 'general': return <GeneralSettingsView onDirty={() => setHasUnsavedChanges(true)} onSaved={() => setHasUnsavedChanges(false)} />;
+      case 'organization': return <OrganizationSettingsView onDirty={() => setHasUnsavedChanges(true)} onSaved={() => setHasUnsavedChanges(false)} />;
       case 'appearance': return <AppearanceSettingsView onDirty={() => setHasUnsavedChanges(true)} />;
       case 'notifications': return <NotificationSettingsView onDirty={() => setHasUnsavedChanges(true)} />;
       case 'branch': return <BranchSettingsView />;
@@ -89,7 +89,7 @@ export function SettingsPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-theme(spacing.16))] -m-6 bg-background">
-      
+
       {/* Settings Header */}
       <div className="border-b bg-card px-8 py-5 shrink-0 flex items-center justify-between">
         <div>
@@ -104,7 +104,7 @@ export function SettingsPage() {
 
       {/* Split-pane Workspace */}
       <div className="flex flex-1 overflow-hidden relative">
-        
+
         {/* Left Navigation Sidebar */}
         <div className="w-64 border-r bg-muted/10 overflow-y-auto hidden md:block shrink-0">
           <div className="p-4 space-y-6">
@@ -117,11 +117,10 @@ export function SettingsPage() {
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id as SettingsTab)}
-                    className={`w-full flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      activeTab === item.id 
-                        ? "bg-primary/10 text-primary" 
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    }`}
+                    className={`w-full flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === item.id
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      }`}
                   >
                     {item.label}
                   </button>
@@ -145,7 +144,14 @@ export function SettingsPage() {
               <span className="text-sm font-medium">You have unsaved changes.</span>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => setHasUnsavedChanges(false)}>Reset</Button>
-                <Button size="sm" onClick={() => setHasUnsavedChanges(false)}>Save Changes</Button>
+                <Button
+                  size="sm"
+                  type={activeTab === 'general' || activeTab === 'organization' ? 'submit' : 'button'}
+                  form={activeTab === 'general' ? 'general-settings-form' : activeTab === 'organization' ? 'organization-settings-form' : undefined}
+                  onClick={activeTab === 'general' || activeTab === 'organization' ? undefined : () => setHasUnsavedChanges(false)}
+                >
+                  Save Changes
+                </Button>
               </div>
             </div>
           </div>

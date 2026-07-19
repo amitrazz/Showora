@@ -39,5 +39,10 @@ export const expenseService = {
 
     const response = await api.post<ExpenseRecord>('/expenses', payload);
     return response.data;
+  },
+
+  recordPayment: async (id: string, data: { amount: number; method: string; referenceId: string }): Promise<void> => {
+    await api.post(`/expenses/${id}/payments`, data);
   }
 };
+

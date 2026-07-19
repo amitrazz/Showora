@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createSaleWizardSchema, CreateSaleWizardForm } from "../schemas";
@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, ChevronRight, ChevronLeft, Save, IndianRupee, Users, Truck, Banknote, Shield, Package } from "lucide-react";
 import { useNavigate, Link } from "@tanstack/react-router";
 import { formatCurrency } from "@/utils/formatters";
-import { useCustomers } from "../../customers/hooks";
+import { useCustomers, useCustomer } from "../../customers/hooks";
 import { useInventory } from "../../inventory/hooks";
 
 const steps = [
@@ -28,10 +28,35 @@ export function SalesWizardPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const navigate = useNavigate();
   const createMutation = useCreateSale();
-  const { data: customers } = useCustomers();
   const { data: inventory } = useInventory();
-  const customerList = customers || [];
   const inventoryList = (inventory || []).filter(v => v.status === 'Available');
+
+  // Customer Search with Debounce
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const { data: customerSearchResults, isLoading: isCustomersLoading } = useCustomers(debouncedSearchTerm);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const form = useForm<CreateSaleWizardForm>({
     resolver: zodResolver(createSaleWizardSchema) as any,
@@ -57,10 +82,20 @@ export function SalesWizardPage() {
 
   const selectedCustomerId = watch("customer.customerId");
   const selectedVehicleId = watch("vehicle.inventoryId");
-  const selectedCustomer = customerList.find(c => c.id === selectedCustomerId);
+  const { data: selectedCustomer } = useCustomer(selectedCustomerId);
   const selectedVehicle = inventoryList.find(v => v.id === selectedVehicleId);
   
   const financeRequired = watch("finance.required");
+
+  // Auto-populate pricing based on selected vehicle
+  useEffect(() => {
+    if (selectedVehicle) {
+      setValue("pricing.basePrice", selectedVehicle.sellingPrice || 0, { shouldValidate: true });
+      setValue("pricing.gstAmount", selectedVehicle.gstAmount || 0, { shouldValidate: true });
+      setValue("pricing.roadTax", selectedVehicle.roadTax || 0, { shouldValidate: true });
+      setValue("pricing.accessoriesPrice", selectedVehicle.accessoriesCost || 0, { shouldValidate: true });
+    }
+  }, [selectedVehicle, setValue]);
 
   // Sync loan amount to outstanding if finance is toggled
   useEffect(() => {
@@ -140,16 +175,88 @@ export function SalesWizardPage() {
                         <p className="text-sm text-muted-foreground">Link this sale to an existing customer profile.</p>
                       </div>
                       <div className="space-y-4 pt-4">
-                        <div className="space-y-2">
+                        <div className="space-y-2 relative" ref={dropdownRef}>
                           <label className="text-sm font-medium">Customer Search *</label>
-                          <select {...register("customer.customerId")} className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                            <option value="">Select a customer...</option>
-                            {customerList.map(c => (
-                              <option key={c.id} value={c.id}>
-                                {c.firstName} {c.lastName} ({c.phone})
-                              </option>
-                            ))}
-                          </select>
+                          {selectedCustomerId && selectedCustomer && selectedCustomer.id ? (
+                            <div className="flex items-center justify-between p-4 rounded-lg border border-border/80 bg-primary/5 animate-in fade-in duration-200">
+                              <div className="space-y-1">
+                                <p className="text-sm font-semibold text-foreground">
+                                  {selectedCustomer.firstName} {selectedCustomer.lastName}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Phone: {selectedCustomer.phone} | Email: {selectedCustomer.email || "N/A"}
+                                </p>
+                              </div>
+                              <Button 
+                                type="button" 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => {
+                                  setValue("customer.customerId", "", { shouldValidate: true });
+                                  setSearchTerm("");
+                                }}
+                              >
+                                Change
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="relative">
+                              <Input 
+                                type="text"
+                                placeholder="Type name, email or phone to search..."
+                                value={searchTerm}
+                                onChange={(e) => {
+                                  setSearchTerm(e.target.value);
+                                  setIsDropdownOpen(true);
+                                }}
+                                onFocus={() => setIsDropdownOpen(true)}
+                                className="bg-muted/50 pr-10"
+                              />
+                              {isCustomersLoading && (
+                                <div className="absolute right-3 top-3">
+                                  <svg className="animate-spin h-4 w-4 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                </div>
+                              )}
+                              
+                              <AnimatePresence>
+                                {isDropdownOpen && (
+                                  <motion.div 
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    className="absolute z-50 w-full mt-1 bg-popover text-popover-foreground border border-border/80 rounded-md shadow-lg max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-1"
+                                  >
+                                    {customerSearchResults && customerSearchResults.length > 0 ? (
+                                      <div className="py-1">
+                                        {customerSearchResults.map((c: any) => (
+                                          <button
+                                            key={c.id}
+                                            type="button"
+                                            onClick={() => {
+                                              setValue("customer.customerId", c.id, { shouldValidate: true });
+                                              setIsDropdownOpen(false);
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors flex flex-col"
+                                          >
+                                            <span className="font-medium">{c.firstName} {c.lastName}</span>
+                                            <span className="text-xs text-muted-foreground">{c.phone} • {c.email}</span>
+                                          </button>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <div className="px-4 py-3 text-sm text-muted-foreground text-center">
+                                        {isCustomersLoading ? "Searching..." : "No customers found"}
+                                      </div>
+                                    )}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          )}
+                          <input type="hidden" {...register("customer.customerId")} />
                           {errors.customer?.customerId && <p className="text-xs text-destructive">{errors.customer.customerId.message}</p>}
                         </div>
                         <div className="pt-4 flex items-center gap-4 border-t border-border/50">
@@ -198,28 +305,28 @@ export function SalesWizardPage() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4">
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Ex-Showroom Price (₹) *</label>
-                          <Input type="number" {...register("pricing.basePrice", { valueAsNumber: true })} className="bg-muted/50 font-mono" />
+                          <Input type="number" {...register("pricing.basePrice")} className="bg-muted/50 font-mono" />
                           {errors.pricing?.basePrice && <p className="text-xs text-destructive">{errors.pricing.basePrice.message}</p>}
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Accessories (₹)</label>
-                          <Input type="number" {...register("pricing.accessoriesPrice", { valueAsNumber: true })} className="bg-muted/50 font-mono" />
+                          <Input type="number" {...register("pricing.accessoriesPrice")} className="bg-muted/50 font-mono" />
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium">RTO / Registration (₹)</label>
-                          <Input type="number" {...register("pricing.registrationTax", { valueAsNumber: true })} className="bg-muted/50 font-mono" />
+                          <Input type="number" {...register("pricing.registrationTax")} className="bg-muted/50 font-mono" />
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Insurance (₹)</label>
-                          <Input type="number" {...register("pricing.insurance", { valueAsNumber: true })} className="bg-muted/50 font-mono" />
+                          <Input type="number" {...register("pricing.insurance")} className="bg-muted/50 font-mono" />
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium">GST Amount (₹) *</label>
-                          <Input type="number" {...register("pricing.gstAmount", { valueAsNumber: true })} className="bg-muted/50 font-mono" />
+                          <Input type="number" {...register("pricing.gstAmount")} className="bg-muted/50 font-mono" />
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-destructive">Discount (₹)</label>
-                          <Input type="number" {...register("pricing.discount", { valueAsNumber: true })} className="bg-destructive/5 font-mono text-destructive" />
+                          <Input type="number" {...register("pricing.discount")} className="bg-destructive/5 font-mono text-destructive" />
                         </div>
                       </div>
                     </motion.div>

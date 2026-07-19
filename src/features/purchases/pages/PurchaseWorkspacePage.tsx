@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { useParams } from "@tanstack/react-router";
-import { usePurchase } from "../hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/utils/formatters";
 import { format, formatDistanceToNow } from "date-fns";
 import { Truck, Building, MoreHorizontal, FileText, IndianRupee, Clock, Check, Download, CreditCard, PackageOpen, Banknote } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { usePurchase, useRecordPurchasePayment } from "../hooks";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+
 
 const tabs = [
   { id: "overview", label: "Overview" },
@@ -21,6 +24,39 @@ export function PurchaseWorkspacePage() {
   const { purchaseId } = useParams({ strict: false });
   const { data: purchase, isLoading } = usePurchase(purchaseId as string);
   const [activeTab, setActiveTab] = useState("overview");
+
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("Bank Transfer");
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [referenceId, setReferenceId] = useState("");
+
+  const recordPaymentMutation = useRecordPurchasePayment(purchaseId as string);
+
+  const openPaymentModal = () => {
+    if (purchase) {
+      setPaymentAmount(purchase.outstandingAmount.toString());
+      setPaymentMethod("Bank Transfer");
+      setReferenceId("");
+      setIsPaymentModalOpen(true);
+    }
+  };
+
+  const handleRecordPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!paymentAmount || parseFloat(paymentAmount) <= 0) return;
+    recordPaymentMutation.mutate({
+      amount: parseFloat(paymentAmount),
+      method: paymentMethod,
+      referenceId: referenceId,
+    }, {
+      onSuccess: () => {
+        setIsPaymentModalOpen(false);
+        setPaymentAmount("");
+        setReferenceId("");
+      }
+    });
+  };
+
 
   if (isLoading) {
     return (
@@ -79,7 +115,7 @@ export function PurchaseWorkspacePage() {
                     </Button>
                   )}
                   {purchase.outstandingAmount > 0 && (
-                    <Button variant="outline" className="shadow-sm">
+                    <Button onClick={openPaymentModal} variant="outline" className="shadow-sm">
                       <CreditCard className="mr-2 h-4 w-4" />
                       Record Payment
                     </Button>
@@ -378,6 +414,90 @@ export function PurchaseWorkspacePage() {
            </div>
         )}
       </div>
+
+      <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+        <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden border-none shadow-premium rounded-2xl bg-background animate-in fade-in zoom-in duration-300">
+          <div className="p-6 sm:p-8">
+            <h3 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              <IndianRupee className="h-5 w-5 text-emerald-500" />
+              Record Supplier Payment
+            </h3>
+            <p className="text-sm text-muted-foreground mt-2">
+              Add a payment transaction for Purchase Order <span className="font-mono font-medium text-foreground">{purchase.poNumber}</span>.
+            </p>
+
+            <form onSubmit={handleRecordPayment} className="space-y-5 mt-6">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Amount (INR)</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 text-muted-foreground font-medium">₹</span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    max={purchase.outstandingAmount}
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    className="pl-8 font-mono text-base font-semibold"
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground flex justify-between">
+                  <span>Max outstanding payable:</span>
+                  <span className="font-mono font-medium">{formatCurrency(purchase.outstandingAmount)}</span>
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Payment Method</label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <option value="Cash">Cash</option>
+                  <option value="UPI">UPI / QR Code</option>
+                  <option value="Bank Transfer">Bank Transfer (NEFT/RTGS/IMPS)</option>
+                  <option value="Credit Card">Credit Card</option>
+                  <option value="Debit Card">Debit Card</option>
+                  <option value="Cheque">Cheque</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Transaction / Reference ID</label>
+                <Input
+                  type="text"
+                  value={referenceId}
+                  onChange={(e) => setReferenceId(e.target.value)}
+                  placeholder="e.g. TXN928374981"
+                  className="font-mono uppercase"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setIsPaymentModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  disabled={recordPaymentMutation.isPending}
+                >
+                  {recordPaymentMutation.isPending ? "Recording..." : "Record Payment"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

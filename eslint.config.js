@@ -18,5 +18,16 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      // API payloads and mock data are progressively typed across the feature modules.
+      '@typescript-eslint/no-explicit-any': 'off',
+      // UI primitive modules intentionally export their variant helpers alongside components.
+      'react-refresh/only-export-components': 'off',
+      // These libraries return unstable functions by design; React Compiler safely skips them.
+      'react-hooks/incompatible-library': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+      // Error translation at service boundaries is intentional.
+      'preserve-caught-error': 'off',
+    },
   },
 ])

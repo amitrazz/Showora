@@ -6,8 +6,8 @@ import { formatCurrency } from "@/utils/formatters";
 import { ColumnDef } from "@tanstack/react-table";
 import { PurchaseOrder } from "../types";
 import { format } from "date-fns";
-import { 
-  Plus, Download, Upload, MoreHorizontal, 
+import {
+  Plus, Download, Upload, MoreHorizontal,
   PackageOpen, Truck, ClipboardList, Wallet
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,8 @@ const purchaseColumns: ColumnDef<PurchaseOrder>[] = [
     accessorKey: "poNumber",
     header: "PO Number",
     cell: ({ row }) => (
-      <Link 
-        to="/purchases/$purchaseId" 
+      <Link
+        to="/purchases/$purchaseId"
         params={{ purchaseId: row.original.id }}
         className="text-sm font-mono font-medium hover:text-primary transition-colors hover:underline"
       >
@@ -119,8 +119,8 @@ export function PurchasePage() {
 
   return (
     <div className="space-y-8 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <PageHeader 
-        title="Purchase Orders" 
+      <PageHeader
+        title="Purchase Orders"
         description="Manage procurement, suppliers, deliveries, and inventory receipts."
         action={
           <div className="flex items-center gap-3">
@@ -171,13 +171,13 @@ export function PurchasePage() {
       )}
 
       {purchases && purchases.length > 0 ? (
-        <DataTable 
-          columns={purchaseColumns} 
-          data={purchases} 
-          searchKey="poNumber" 
+        <DataTable
+          columns={purchaseColumns}
+          data={purchases}
+          searchKey="poNumber"
         />
       ) : (
-        <EmptyState 
+        <EmptyState
           title="No Purchase Orders"
           description="Create your first Purchase Order to restock inventory."
           icon={<ClipboardList />}

@@ -6,8 +6,8 @@ import { formatCurrency } from "@/utils/formatters";
 import { ColumnDef } from "@tanstack/react-table";
 import { InvoiceRecord } from "../types";
 import { format } from "date-fns";
-import { 
-  Plus, Download, Printer, MoreHorizontal, 
+import {
+  Plus, Download, Printer, MoreHorizontal,
   Receipt, Wallet, CalendarX, FileSpreadsheet
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,8 @@ const invoiceColumns: ColumnDef<InvoiceRecord>[] = [
     accessorKey: "invoiceNumber",
     header: "Invoice #",
     cell: ({ row }) => (
-      <Link 
-        to="/invoices/$invoiceId" 
+      <Link
+        to="/invoices/$invoiceId"
         params={{ invoiceId: row.original.id }}
         className="text-sm font-mono font-medium hover:text-primary transition-colors hover:underline"
       >
@@ -115,8 +115,8 @@ export function InvoicePage() {
 
   return (
     <div className="space-y-8 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <PageHeader 
-        title="Invoices" 
+      <PageHeader
+        title="Invoices"
         description="Manage customer billing, tax invoices, and payment collections."
         action={
           <div className="flex items-center gap-3">
@@ -167,13 +167,13 @@ export function InvoicePage() {
       )}
 
       {invoices && invoices.length > 0 ? (
-        <DataTable 
-          columns={invoiceColumns} 
-          data={invoices} 
-          searchKey="invoiceNumber" 
+        <DataTable
+          columns={invoiceColumns}
+          data={invoices}
+          searchKey="invoiceNumber"
         />
       ) : (
-        <EmptyState 
+        <EmptyState
           title="No Invoices"
           description="Generate your first invoice from a completed sale."
           icon={<Receipt />}

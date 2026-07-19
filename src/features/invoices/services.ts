@@ -39,5 +39,10 @@ export const invoiceService = {
 
     const response = await api.post<InvoiceRecord>('/invoices', payload);
     return response.data;
+  },
+
+  recordPayment: async (id: string, data: { amount: number; method: string; referenceId: string }): Promise<any> => {
+    const response = await api.post(`/invoices/${id}/payments`, data);
+    return response.data;
   }
 };

@@ -25,8 +25,8 @@ const inventoryColumns: ColumnDef<InventoryVehicle>[] = [
             <Truck className="h-5 w-5" />
           </div>
           <div className="flex flex-col">
-            <Link 
-              to="/inventory/$inventoryId" 
+            <Link
+              to="/inventory/$inventoryId"
               params={{ inventoryId: vehicle.id }}
               className="font-medium hover:text-primary transition-colors hover:underline text-sm"
             >
@@ -118,8 +118,8 @@ export function InventoryPage() {
 
   return (
     <div className="space-y-8 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <PageHeader 
-        title="Inventory" 
+      <PageHeader
+        title="Inventory"
         description="Manage showroom vehicle inventory and stock movement."
         action={
           <div className="flex items-center gap-3">
@@ -170,13 +170,13 @@ export function InventoryPage() {
       )}
 
       {inventory && inventory.length > 0 ? (
-        <DataTable 
-          columns={inventoryColumns} 
-          data={inventory} 
-          searchKey="vin" 
+        <DataTable
+          columns={inventoryColumns}
+          data={inventory}
+          searchKey="vin"
         />
       ) : (
-        <EmptyState 
+        <EmptyState
           title="No Inventory Yet"
           description="Get started by receiving your first vehicle into stock."
           icon={<Package />}

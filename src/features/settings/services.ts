@@ -15,8 +15,18 @@ export const settingsService = {
     return response.data;
   },
 
+  updateGeneralSettings: async (data: GeneralSettings): Promise<GeneralSettings> => {
+    const response = await api.patch<GeneralSettings>('/settings/general', data);
+    return response.data;
+  },
+
   getOrganizationSettings: async (): Promise<OrganizationSettings> => {
     const response = await api.get<OrganizationSettings>('/settings/organization');
+    return response.data;
+  },
+
+  updateOrganizationSettings: async (data: OrganizationSettings): Promise<OrganizationSettings> => {
+    const response = await api.patch<OrganizationSettings>('/settings/organization', data);
     return response.data;
   },
 

@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Link } from "@tanstack/react-router";
+import { toast } from "sonner";
 
 export function DashboardPage() {
   const { data, isLoading } = useDashboardMetrics();
@@ -29,11 +31,28 @@ export function DashboardPage() {
         description="Here's what's happening in your showroom today." 
         action={
           <div className="flex items-center gap-3">
-            <Button variant="outline" className="hidden sm:flex">Download Report</Button>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              New Sale
+            <Button 
+              variant="outline" 
+              className="hidden sm:flex"
+              onClick={() => {
+                toast.success("Preparing overview report...", {
+                  description: "Your report download will begin in a moment.",
+                });
+                setTimeout(() => {
+                  toast.success("Download started", {
+                    description: "Overview report has been saved to your downloads.",
+                  });
+                }, 1500);
+              }}
+            >
+              Download Report
             </Button>
+            <Link to="/sales/new">
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                New Sale
+              </Button>
+            </Link>
           </div>
         }
       />

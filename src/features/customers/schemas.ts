@@ -17,7 +17,7 @@ export const customerAddressSchema = z.object({
 });
 
 export const customerIdentitySchema = z.object({
-  panNumber: z.string().regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, "Invalid PAN format").optional().or(z.literal('')),
+  panNumber: z.string().regex(/^[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}$/, "Invalid PAN format").optional().or(z.literal('')).transform((val) => val?.toUpperCase()),
   aadharNumber: z.string().regex(/^\d{12}$/, "Must be a 12-digit Aadhar number").optional().or(z.literal('')),
   drivingLicense: z.string().optional(),
   gstNumber: z.string().optional(),

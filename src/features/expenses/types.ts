@@ -28,28 +28,29 @@ export interface ExpenseRecord {
   vendor: string;
   description: string;
   branch: string;
-  
+
   status: ExpenseStatus;
   paymentStatus: ExpensePaymentStatus;
-  
+
   expenseDate: string;
   dueDate: string;
   createdBy: string;
   approvedBy?: string;
-  
+
   // Amounts
   subtotal: number;
   gstAmount: number;
   discount: number;
   totalAmount: number;
-  
+
   // Payment
   paidAmount: number;
   outstandingAmount: number;
-  
+
   payments: ExpensePaymentRecord[];
   timeline: ExpenseTimelineEvent[];
-  
+  supportingDocuments?: SupportingDocument[];
+
   // Attachments
   hasReceipts: boolean;
   isRecurring: boolean;
@@ -66,4 +67,12 @@ export interface ExpenseMetrics {
   monthlyBudget: number;
   budgetUtilization: number;
   averageDailyExpense: number;
+}
+
+export interface SupportingDocument {
+  id: string;
+  url: string;
+  name: string;
+  type: string;
+  size: number;
 }

@@ -175,10 +175,15 @@ export function InventoryWizardPage() {
                       <Input {...register("vehicleInfo.vin")} placeholder="17-character VIN" className="bg-muted/50 uppercase font-mono" maxLength={17} />
                       {errors.vehicleInfo?.vin && <p className="text-xs text-destructive">{errors.vehicleInfo.vin.message}</p>}
                     </div>
-                    <div className="space-y-2 sm:col-span-2">
+                    <div className="space-y-2">
                       <label className="text-sm font-medium">Engine Number *</label>
                       <Input {...register("vehicleInfo.engineNumber")} placeholder="E..." className="bg-muted/50 font-mono uppercase" />
                       {errors.vehicleInfo?.engineNumber && <p className="text-xs text-destructive">{errors.vehicleInfo.engineNumber.message}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Chassis Number *</label>
+                      <Input {...register("vehicleInfo.chassisNumber")} placeholder="C..." className="bg-muted/50 font-mono uppercase" />
+                      {errors.vehicleInfo?.chassisNumber && <p className="text-xs text-destructive">{errors.vehicleInfo.chassisNumber.message}</p>}
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Manufacturing Year</label>
@@ -267,7 +272,11 @@ export function InventoryWizardPage() {
                         <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Vehicle</h4>
                         <p className="text-sm font-medium">{watch("vehicleInfo.make")} {watch("vehicleInfo.model")} {watch("vehicleInfo.variant")}</p>
                         <p className="text-sm text-muted-foreground">{watch("vehicleInfo.color")} • {watch("vehicleInfo.transmission")}</p>
-                        <p className="text-sm text-muted-foreground mt-1">VIN: <span className="font-mono text-foreground uppercase">{watch("vehicleInfo.vin") || "N/A"}</span></p>
+                        <div className="mt-2 space-y-0.5">
+                          <p className="text-sm text-muted-foreground">VIN: <span className="font-mono text-foreground uppercase">{watch("vehicleInfo.vin") || "N/A"}</span></p>
+                          <p className="text-sm text-muted-foreground">Engine No: <span className="font-mono text-foreground uppercase">{watch("vehicleInfo.engineNumber") || "N/A"}</span></p>
+                          <p className="text-sm text-muted-foreground">Chassis No: <span className="font-mono text-foreground uppercase">{watch("vehicleInfo.chassisNumber") || "N/A"}</span></p>
+                        </div>
                       </div>
                       <div>
                         <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Location</h4>

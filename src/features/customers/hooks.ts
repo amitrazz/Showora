@@ -4,10 +4,10 @@ import { CreateCustomerWizardForm } from "./schemas";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
 
-export const useCustomers = () => {
+export const useCustomers = (search?: string) => {
   return useQuery({
-    queryKey: ["customers"],
-    queryFn: customerService.getCustomers,
+    queryKey: ["customers", search],
+    queryFn: () => customerService.getCustomers(search),
   });
 };
 

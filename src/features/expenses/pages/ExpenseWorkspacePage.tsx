@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "@tanstack/react-router";
-import { useExpense } from "../hooks";
+import { useExpense, useRecordExpensePayment } from "../hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/utils/formatters";
@@ -10,6 +10,9 @@ import {
   CreditCard, Building2, UploadCloud, ShieldCheck, XCircle 
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 const tabs = [
   { id: "overview", label: "Overview" },
@@ -22,6 +25,102 @@ export function ExpenseWorkspacePage() {
   const { expenseId } = useParams({ strict: false });
   const { data: expense, isLoading } = useExpense(expenseId as string);
   const [activeTab, setActiveTab] = useState("overview");
+
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("Bank Transfer");
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [referenceId, setReferenceId] = useState("");
+
+  const recordPaymentMutation = useRecordExpensePayment(expenseId as string);
+
+  const openPaymentModal = () => {
+    if (expense) {
+      setPaymentAmount(expense.outstandingAmount.toString());
+      setPaymentMethod("Bank Transfer");
+      setReferenceId("");
+      setIsPaymentModalOpen(true);
+    }
+  };
+
+  const handleRecordPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!paymentAmount || parseFloat(paymentAmount) <= 0) return;
+    recordPaymentMutation.mutate({
+      amount: parseFloat(paymentAmount),
+      method: paymentMethod,
+      referenceId: referenceId,
+    }, {
+      onSuccess: () => {
+        setIsPaymentModalOpen(false);
+        setPaymentAmount("");
+        setReferenceId("");
+      }
+    });
+  };
+
+  const [documents, setDocuments] = useState<Array<{ name: string; size: string; type: string; url?: string }>>([]);
+
+  useEffect(() => {
+    if (expense) {
+      if (expense.supportingDocuments && expense.supportingDocuments.length > 0) {
+        setDocuments(expense.supportingDocuments.map((doc: any) => ({
+          name: doc.name,
+          size: doc.size || "2.4 MB",
+          type: doc.fileType || "PDF",
+          url: doc.fileUrl || "#",
+        })));
+      } else if (expense.hasReceipts) {
+        const mockContent = `Showora Operational Expense Record\nExpense ID: ${expense.expenseId}\nTitle: ${expense.title}\nVendor: ${expense.vendor}\nCategory: ${expense.category}\nBranch: ${expense.branch}\nDate: ${expense.expenseDate}\nTotal Amount: ${formatCurrency(expense.totalAmount)}`;
+        const blob = new Blob([mockContent], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+
+        setDocuments([
+          {
+            name: `${expense.title.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_bill.txt`,
+            size: `${(1.2 + (expense.totalAmount % 3.0)).toFixed(1)} MB`,
+            type: "TXT",
+            url: url,
+          }
+        ]);
+      } else {
+        setDocuments([]);
+      }
+    }
+  }, [expense]);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      const url = URL.createObjectURL(file);
+      const newDoc = {
+        name: file.name,
+        size: `${sizeMB} MB`,
+        type: file.name.split('.').pop()?.toUpperCase() || 'unknown',
+        url: url,
+      };
+      
+      const toastId = toast.loading('Uploading document...');
+      
+      setTimeout(() => {
+        setDocuments(prev => [...prev, newDoc]);
+        toast.dismiss(toastId);
+        toast.success('Document uploaded successfully!');
+      }, 1000);
+    }
+  };
+
+  const handleDownload = (doc: { name: string; url?: string }) => {
+    if (!doc.url) return;
+    const link = document.createElement('a');
+    link.href = doc.url;
+    link.download = doc.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success(`Downloading ${doc.name}`);
+  };
 
   if (isLoading) {
     return (
@@ -90,7 +189,7 @@ export function ExpenseWorkspacePage() {
                     </>
                   )}
                   {expense.status === 'Approved' && expense.outstandingAmount > 0 && (
-                    <Button className="shadow-sm">
+                    <Button onClick={openPaymentModal} className="shadow-sm animate-in fade-in duration-300">
                       <CreditCard className="mr-2 h-4 w-4" />
                       Record Payment
                     </Button>
@@ -249,7 +348,11 @@ export function ExpenseWorkspacePage() {
             <CardContent className="p-6 sm:p-10">
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-lg font-medium">Payment History</h3>
-                {expense.outstandingAmount > 0 && <Button variant="outline" size="sm"><CreditCard className="h-4 w-4 mr-2" /> Record Payment</Button>}
+                {expense.outstandingAmount > 0 && (
+                  <Button onClick={openPaymentModal} variant="outline" size="sm">
+                    <CreditCard className="h-4 w-4 mr-2" /> Record Payment
+                  </Button>
+                )}
               </div>
               
               {expense.payments.length > 0 ? (
@@ -299,23 +402,47 @@ export function ExpenseWorkspacePage() {
             <CardContent className="p-6 sm:p-10">
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-lg font-medium">Supporting Documents</h3>
-                <Button variant="outline" size="sm"><UploadCloud className="h-4 w-4 mr-2" /> Upload Receipt</Button>
+                <input
+                  type="file"
+                  id="receipt-upload"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                  accept=".pdf,.png,.jpg,.jpeg"
+                />
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => document.getElementById('receipt-upload')?.click()}
+                >
+                  <UploadCloud className="h-4 w-4 mr-2" /> Upload Receipt
+                </Button>
               </div>
               
-              {expense.hasReceipts ? (
+              {documents.length > 0 ? (
                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    <div className="border border-border/50 rounded-xl p-4 flex items-start gap-4 hover:bg-muted/30 transition-colors group cursor-pointer">
-                       <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
-                          <FileText className="h-5 w-5 text-primary" />
-                       </div>
-                       <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">vendor_bill_oct.pdf</p>
-                          <p className="text-xs text-muted-foreground mt-1">2.4 MB • PDF</p>
-                       </div>
-                       <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Download className="h-4 w-4 text-muted-foreground" />
-                       </Button>
-                    </div>
+                    {documents.map((doc, idx) => (
+                      <div key={idx} className="border border-border/50 rounded-xl p-4 flex items-start gap-4 hover:bg-muted/30 transition-colors group cursor-pointer">
+                         <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
+                            <FileText className="h-5 w-5 text-primary" />
+                         </div>
+                         <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{doc.name}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{doc.size} • {doc.type}</p>
+                         </div>
+                         <Button 
+                           variant="ghost" 
+                           size="icon" 
+                           className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             handleDownload(doc);
+                           }}
+                         >
+                            <Download className="h-4 w-4 text-muted-foreground" />
+                         </Button>
+                      </div>
+
+                    ))}
                  </div>
               ) : (
                 <div className="text-center py-12 border rounded-xl border-dashed">
@@ -325,6 +452,7 @@ export function ExpenseWorkspacePage() {
             </CardContent>
           </Card>
         )}
+
 
         {activeTab === "timeline" && (
           <Card className="shadow-soft border-border/50 animate-in fade-in duration-500">
@@ -351,6 +479,94 @@ export function ExpenseWorkspacePage() {
           </Card>
         )}
       </div>
+
+      {isPaymentModalOpen && (
+        <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+          <DialogContent className="sm:max-w-[425px] border border-border/80 shadow-2xl bg-card animate-in zoom-in-95 duration-200">
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold leading-none tracking-tight flex items-center gap-2 text-foreground">
+                  <CreditCard className="h-5 w-5 text-primary" /> Record Expense Payment
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Enter the details of the payment made to the vendor.
+                </p>
+              </div>
+
+              <form onSubmit={handleRecordPayment} className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="amount" className="text-sm font-medium leading-none text-muted-foreground">
+                    Payment Amount (INR) *
+                  </label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    max={expense?.outstandingAmount}
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    className="bg-muted/50 font-mono text-base"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Maximum outstanding amount: <span className="font-semibold">{formatCurrency(expense?.outstandingAmount || 0)}</span>
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="method" className="text-sm font-medium leading-none text-muted-foreground">
+                    Payment Method *
+                  </label>
+                  <select
+                    id="method"
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    required
+                  >
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Card">Card</option>
+                    <option value="UPI">UPI</option>
+                    <option value="Cheque">Cheque</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="referenceId" className="text-sm font-medium leading-none text-muted-foreground">
+                    Reference ID / Transaction ID *
+                  </label>
+                  <Input
+                    id="referenceId"
+                    type="text"
+                    value={referenceId}
+                    onChange={(e) => setReferenceId(e.target.value)}
+                    placeholder="e.g. TXN12345678"
+                    className="bg-muted/50"
+                    required
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-border/50">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsPaymentModalOpen(false)}
+                    disabled={recordPaymentMutation.isPending}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={recordPaymentMutation.isPending}>
+                    {recordPaymentMutation.isPending ? "Recording..." : "Record Payment"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
+

@@ -25,8 +25,8 @@ const customerColumns: ColumnDef<Customer>[] = [
             <AvatarFallback className="bg-primary/10 text-primary">{customer.firstName[0]}{customer.lastName[0]}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
-            <Link 
-              to="/customers/$customerId" 
+            <Link
+              to="/customers/$customerId"
               params={{ customerId: customer.id }}
               className="font-medium hover:text-primary transition-colors hover:underline"
             >
@@ -109,8 +109,8 @@ export function CustomersPage() {
 
   return (
     <div className="space-y-8 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <PageHeader 
-        title="Customers" 
+      <PageHeader
+        title="Customers"
         description="Manage customers, purchase history, finance, and showroom relationships."
         action={
           <div className="flex items-center gap-3">
@@ -160,13 +160,13 @@ export function CustomersPage() {
       )}
 
       {customers && customers.length > 0 ? (
-        <DataTable 
-          columns={customerColumns} 
-          data={customers} 
-          searchKey="firstName" 
+        <DataTable
+          columns={customerColumns}
+          data={customers}
+          searchKey="firstName"
         />
       ) : (
-        <EmptyState 
+        <EmptyState
           title="No Customers Yet"
           description="Get started by creating your first customer profile."
           icon={<Users />}

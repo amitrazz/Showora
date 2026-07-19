@@ -48,3 +48,27 @@ export const useCreateExpense = () => {
     },
   });
 };
+
+export const useRecordExpensePayment = (id: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { amount: number; method: string; referenceId: string }) =>
+      expenseService.recordPayment(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['expenses', id] });
+      queryClient.invalidateQueries({ queryKey: ['expense-metrics'] });
+
+      toast.success('Payment Recorded', {
+        description: 'The payment has been successfully recorded.',
+      });
+    },
+    onError: (error: any) => {
+      toast.error('Failed to record Payment', {
+        description: error.response?.data?.message || error.message || 'An error occurred.',
+      });
+    },
+  });
+};
+

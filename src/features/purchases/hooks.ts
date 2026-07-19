@@ -48,3 +48,27 @@ export const useCreatePurchase = () => {
     },
   });
 };
+
+export const useRecordPurchasePayment = (id: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { amount: number; method: string; referenceId: string }) =>
+      purchaseService.recordPayment(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchases'] });
+      queryClient.invalidateQueries({ queryKey: ['purchases', id] });
+      queryClient.invalidateQueries({ queryKey: ['purchase-metrics'] });
+
+      toast.success('Payment Recorded', {
+        description: 'Supplier payment has been registered successfully.',
+      });
+    },
+    onError: (error: any) => {
+      toast.error('Failed to record Payment', {
+        description: error.message || 'Error occurred while saving payment.',
+      });
+    },
+  });
+};
+

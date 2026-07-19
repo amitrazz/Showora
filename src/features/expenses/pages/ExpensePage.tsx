@@ -6,8 +6,8 @@ import { formatCurrency } from "@/utils/formatters";
 import { ColumnDef } from "@tanstack/react-table";
 import { ExpenseRecord } from "../types";
 import { format } from "date-fns";
-import { 
-  Plus, Download, CheckSquare, MoreHorizontal, 
+import {
+  Plus, Download, CheckSquare, MoreHorizontal,
   Wallet, TrendingUp, Clock, AlertCircle, FileText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,8 @@ const expenseColumns: ColumnDef<ExpenseRecord>[] = [
     accessorKey: "expenseId",
     header: "Expense ID",
     cell: ({ row }) => (
-      <Link 
-        to="/expenses/$expenseId" 
+      <Link
+        to="/expenses/$expenseId"
         params={{ expenseId: row.original.id }}
         className="text-sm font-mono font-medium hover:text-primary transition-colors hover:underline"
       >
@@ -124,8 +124,8 @@ export function ExpensePage() {
 
   return (
     <div className="space-y-8 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <PageHeader 
-        title="Expense Management" 
+      <PageHeader
+        title="Expense Management"
         description="Track operational expenses, reimburse employees, and monitor budgets."
         action={
           <div className="flex items-center gap-3">
@@ -156,19 +156,19 @@ export function ExpensePage() {
             className="border-primary/20 bg-primary/5"
           />
           <div className="rounded-xl border bg-card p-6 shadow-sm">
-             <div className="flex flex-row items-center justify-between space-y-0 pb-2">
-               <h3 className="tracking-tight text-sm font-medium text-muted-foreground">Budget Utilization</h3>
-               <TrendingUp className="h-4 w-4 text-muted-foreground" />
-             </div>
-             <div className="mt-2 flex flex-col gap-2">
-               <div className="flex items-baseline gap-2">
-                 <div className="text-2xl font-semibold font-mono">{metrics.budgetUtilization.toFixed(1)}%</div>
-                 <div className="text-xs text-muted-foreground">of {formatCurrency(metrics.monthlyBudget)}</div>
-               </div>
-               <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                 <div className="h-full bg-primary" style={{ width: `${Math.min(metrics.budgetUtilization, 100)}%` }} />
-               </div>
-             </div>
+            <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <h3 className="tracking-tight text-sm font-medium text-muted-foreground">Budget Utilization</h3>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="mt-2 flex flex-col gap-2">
+              <div className="flex items-baseline gap-2">
+                <div className="text-2xl font-semibold font-mono">{metrics.budgetUtilization.toFixed(1)}%</div>
+                <div className="text-xs text-muted-foreground">of {formatCurrency(metrics.monthlyBudget)}</div>
+              </div>
+              <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                <div className="h-full bg-primary" style={{ width: `${Math.min(metrics.budgetUtilization, 100)}%` }} />
+              </div>
+            </div>
           </div>
           <StatsCard
             title="Pending Approval"
@@ -186,13 +186,13 @@ export function ExpensePage() {
       )}
 
       {expenses && expenses.length > 0 ? (
-        <DataTable 
-          columns={expenseColumns} 
-          data={expenses} 
-          searchKey="vendor" 
+        <DataTable
+          columns={expenseColumns}
+          data={expenses}
+          searchKey="vendor"
         />
       ) : (
-        <EmptyState 
+        <EmptyState
           title="No Expenses Recorded"
           description="Record your first operational expense or bill."
           icon={<Wallet />}

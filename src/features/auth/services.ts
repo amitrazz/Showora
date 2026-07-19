@@ -20,10 +20,10 @@ export const loginService = async (data: LoginFormData): Promise<{ user: User; a
       id: decodedPayload.sub || "usr_1",
       name: decodedPayload.name || decodedPayload.email.split('@')[0],
       email: decodedPayload.email,
-      role: "admin", // Default for now
-      avatar: `https://i.pravatar.cc/150?u=${decodedPayload.email}`,
+      role: decodedPayload.roles[0] || "user",
+      organizationId: decodedPayload.organizationId
     };
-  } catch (error) {
+  } catch {
     throw new Error("Failed to parse access token");
   }
 
