@@ -57,7 +57,7 @@ export function CustomerWizardPage() {
         lastName: customer.lastName ?? "",
         phone: customer.phone ?? "",
         email: customer.email ?? "",
-        gender: customer.gender ?? "male",
+        gender: customer.gender ?? "other",
         dob: customer.dob ?? "",
       },
 
@@ -136,8 +136,8 @@ export function CustomerWizardPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-8 pb-12 animate-in fade-in duration-500">
       <PageHeader
-        title="Create Customer Workspace"
-        description="Add a new customer to the CRM."
+        title={`${isEditMode ? `${customer.firstName} ${customer.lastName}` : "Create New Customer"}`}
+        description={isEditMode ? `Updating ${customer.firstName + " " + customer.lastName} details.` : "Creating new customer."}
         action={
           <Button variant="outline" onClick={() => navigate({ to: "/customers" })}>
             Cancel
@@ -192,6 +192,29 @@ export function CustomerWizardPage() {
                       {errors.basic?.lastName && <p className="text-xs text-destructive">{errors.basic.lastName.message}</p>}
                     </div>
                     <div className="space-y-2">
+                      <label className="text-sm font-medium">Date of Birth</label>
+                      <Input type="date" {...register("basic.dob")} className="bg-muted/50" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Gender *</label>
+
+                      <select
+                        {...register("basic.gender")}
+                        className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      >
+                        <option value="">Select Gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                      </select>
+
+                      {errors.basic?.gender && (
+                        <p className="text-xs text-destructive">
+                          {errors.basic.gender.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
                       <label className="text-sm font-medium">Phone Number *</label>
                       <Input {...register("basic.phone")} placeholder="9876543210" className="bg-muted/50" />
                       {errors.basic?.phone && <p className="text-xs text-destructive">{errors.basic.phone.message}</p>}
@@ -200,10 +223,6 @@ export function CustomerWizardPage() {
                       <label className="text-sm font-medium">Email</label>
                       <Input {...register("basic.email")} placeholder="john@example.com" className="bg-muted/50" />
                       {errors.basic?.email && <p className="text-xs text-destructive">{errors.basic.email.message}</p>}
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Date of Birth</label>
-                      <Input type="date" {...register("basic.dob")} className="bg-muted/50" />
                     </div>
                   </div>
                 </motion.div>
@@ -264,8 +283,23 @@ export function CustomerWizardPage() {
                       <Input {...register("identity.drivingLicense")} placeholder="MH12 20240000000" className="bg-muted/50" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">GST Number (Optional)</label>
-                      <Input {...register("identity.gstNumber")} placeholder="27XXXXX1234X1Z5" className="bg-muted/50 uppercase" />
+                      <label className="text-sm font-medium">Gender</label>
+
+                      <select
+                        {...register("basic.gender")}
+                        className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      >
+                        <option value="">Select Gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                      </select>
+
+                      {errors.basic?.gender && (
+                        <p className="text-xs text-destructive">
+                          {errors.basic.gender.message}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </motion.div>
