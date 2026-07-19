@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { customerService } from "./services";
 import { CustomerListOptions } from "./types";
 import { CreateCustomerWizardForm } from "./schemas";
@@ -9,6 +9,7 @@ export const useCustomers = (options: CustomerListOptions = {}) => {
   return useQuery({
     queryKey: ["customers", options],
     queryFn: () => customerService.getCustomers(options),
+    placeholderData: keepPreviousData,
   });
 };
 

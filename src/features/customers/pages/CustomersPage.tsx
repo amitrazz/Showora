@@ -114,7 +114,7 @@ export function CustomersPage() {
     setCursor(previousCursor);
   };
 
-  if (isLoading) {
+  if (isLoading && !customerPage) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <div className="flex flex-col items-center gap-2">
