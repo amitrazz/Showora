@@ -40,13 +40,45 @@ export const purchaseService = {
       otherCharges,
       grandTotal,
       advancePayment: data.payment.advancePayment,
-      referenceId: data.payment.referenceId,
+      referenceId: data.payment.referenceId || 'N/A',
       expectedDeliveryDate: data.delivery.expectedDeliveryDate,
       warehouse: data.delivery.warehouse,
       notes: data.delivery.notes
     };
 
     const response = await api.post<PurchaseOrder>('/purchases', payload);
+    return response.data;
+  },
+
+  updatePurchase: async (id: string, data: CreatePurchaseWizardForm): Promise<PurchaseOrder> => {
+    const subtotal = data.items.reduce((sum, item) => sum + (item.quantityOrdered * item.unitCost), 0);
+    const discount = data.pricing.discount || 0;
+    const gstAmount = data.pricing.gstAmount || 0;
+    const transportation = data.pricing.transportation || 0;
+    const insurance = data.pricing.insurance || 0;
+    const otherCharges = data.pricing.otherCharges || 0;
+    const grandTotal = subtotal - discount + gstAmount + transportation + insurance + otherCharges;
+
+    const payload = {
+      supplierId: data.supplier.supplierId,
+      supplierName: 'Selected Supplier',
+      paymentTerms: data.payment.terms,
+      items: data.items,
+      subtotal,
+      discount,
+      gstAmount,
+      transportation,
+      insurance,
+      otherCharges,
+      grandTotal,
+      advancePayment: data.payment.advancePayment,
+      referenceId: data.payment.referenceId || 'N/A',
+      expectedDeliveryDate: data.delivery.expectedDeliveryDate,
+      warehouse: data.delivery.warehouse,
+      notes: data.delivery.notes
+    };
+
+    const response = await api.patch<PurchaseOrder>(`/purchases/${id}`, payload);
     return response.data;
   },
 

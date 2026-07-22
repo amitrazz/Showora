@@ -2,7 +2,7 @@ import { useReportMetrics, useSalesByModel, useSalesExecutives } from '../hooks'
 import { StatsCard } from '@/components/common/StatsCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SalesBarChart } from './Charts';
-import { formatCurrency } from '@/utils/formatters';
+import { formatPaise as formatCurrency } from '@/utils/formatters';
 import { Users, Zap } from 'lucide-react';
 
 export const SalesView = () => {

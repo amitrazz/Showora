@@ -1,15 +1,15 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createInvoiceWizardSchema, CreateInvoiceWizardForm } from "../schemas";
-import { useCreateInvoice } from "../hooks";
+import { useCreateInvoice, useInvoice, useUpdateInvoice } from "../hooks";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ChevronRight, ChevronLeft, Save, IndianRupee, Banknote, Search, Calendar, User, FileText } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import { formatCurrency } from "@/utils/formatters";
 import { useSales } from "../../sales/hooks";
 
@@ -24,7 +24,10 @@ const steps = [
 export function InvoiceWizardPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const navigate = useNavigate();
+  const { invoiceId } = useParams({ strict: false });
+  const { data: invoice, isLoading: isInvoiceLoading } = useInvoice(invoiceId as string);
   const createMutation = useCreateInvoice();
+  const updateMutation = useUpdateInvoice();
 
   const { data: salesList } = useSales();
   const sales = salesList || [];
@@ -33,10 +36,15 @@ export function InvoiceWizardPage() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const isEditMode = !!invoiceId;
+
+  const queryParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const initialSaleId = queryParams?.get('saleId') || "";
+
   const form = useForm<CreateInvoiceWizardForm>({
     resolver: zodResolver(createInvoiceWizardSchema) as any,
     defaultValues: {
-      sale: { saleId: "" },
+      sale: { saleId: initialSaleId },
       metadata: { invoiceDate: new Date().toISOString().split('T')[0], dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], salesExecutive: "Rajesh Kumar", branch: "Downtown Main Showroom" },
       pricing: { basePrice: 0, accessoriesPrice: 0, registrationTax: 0, insurance: 0, otherCharges: 0, discount: 0, gstRate: 28 },
       payment: { amountPaid: 0, method: "Bank Transfer" },
@@ -44,7 +52,7 @@ export function InvoiceWizardPage() {
     mode: "onChange",
   });
 
-  const { register, trigger, watch, handleSubmit, setValue, formState: { errors } } = form;
+  const { register, trigger, watch, handleSubmit, setValue, formState: { errors }, reset } = form;
 
   const selectedSaleId = watch("sale.saleId");
   const selectedSale = sales.find(s => s.invoiceNumber === selectedSaleId || s.id === selectedSaleId);
@@ -68,20 +76,58 @@ export function InvoiceWizardPage() {
   }, []);
 
   useEffect(() => {
-    if (selectedSale) {
+    if (!invoice) return;
+    reset({
+      sale: {
+        saleId: invoice.saleId ?? "",
+      },
+      metadata: {
+        invoiceDate: invoice.invoiceDate ? invoice.invoiceDate.split('T')[0] : new Date().toISOString().split('T')[0],
+        dueDate: invoice.dueDate ? invoice.dueDate.split('T')[0] : new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        salesExecutive: invoice.salesExecutive ?? "Rajesh Kumar",
+        branch: invoice.branch ?? "Downtown Main Showroom",
+      },
+      pricing: {
+        basePrice: (invoice.basePrice ?? 0) / 100,
+        accessoriesPrice: (invoice.accessoriesPrice ?? 0) / 100,
+        registrationTax: (invoice.registrationTax ?? 0) / 100,
+        insurance: (invoice.insurance ?? 0) / 100,
+        otherCharges: (invoice.otherCharges ?? 0) / 100,
+        discount: (invoice.discount ?? 0) / 100,
+        gstRate: ((invoice.cgstRate || 0) + (invoice.sgstRate || 0)) as any || 28,
+      },
+      payment: {
+        amountPaid: (invoice.amountPaid ?? 0) / 100,
+        method: (invoice.payments?.[0]?.method as any) ?? "Bank Transfer",
+        referenceId: invoice.payments?.[0]?.referenceId ?? "",
+      },
+    });
+  }, [invoice, reset]);
+
+  useEffect(() => {
+    if (initialSaleId && !isEditMode) {
+      setValue("sale.saleId", initialSaleId, { shouldValidate: true });
+    }
+  }, [initialSaleId, isEditMode, setValue]);
+
+  useEffect(() => {
+    if (selectedSale && !isEditMode) {
       setValue("metadata.salesExecutive", selectedSale.salesExecutive || "", { shouldValidate: true });
       setValue("metadata.branch", selectedSale.branch || "", { shouldValidate: true });
-      setValue("pricing.basePrice", selectedSale.basePrice || 0, { shouldValidate: true });
-      setValue("pricing.accessoriesPrice", selectedSale.accessoriesPrice || 0, { shouldValidate: true });
-      setValue("pricing.registrationTax", selectedSale.registrationTax || 0, { shouldValidate: true });
-      setValue("pricing.insurance", selectedSale.insurance || 0, { shouldValidate: true });
-      setValue("pricing.discount", selectedSale.discount || 0, { shouldValidate: true });
-      setValue("payment.amountPaid", selectedSale.totalPaid || 0, { shouldValidate: true });
+      setValue("pricing.basePrice", (selectedSale.basePrice || 0) / 100, { shouldValidate: true });
+      setValue("pricing.accessoriesPrice", (selectedSale.accessoriesPrice || 0) / 100, { shouldValidate: true });
+      setValue("pricing.registrationTax", (selectedSale.registrationTax || 0) / 100, { shouldValidate: true });
+      setValue("pricing.insurance", (selectedSale.insurance || 0) / 100, { shouldValidate: true });
+      setValue("pricing.discount", (selectedSale.discount || 0) / 100, { shouldValidate: true });
+      setValue("payment.amountPaid", (selectedSale.totalPaid || 0) / 100, { shouldValidate: true });
       
-      const calculatedGstRate = selectedSale.basePrice > 0 ? Math.round((selectedSale.gstAmount / (selectedSale.basePrice - selectedSale.discount)) * 100) : 28;
+      const basePriceRupees = (selectedSale.basePrice || 0) / 100;
+      const discountRupees = (selectedSale.discount || 0) / 100;
+      const gstAmountRupees = (selectedSale.gstAmount || 0) / 100;
+      const calculatedGstRate = basePriceRupees > 0 ? Math.round((gstAmountRupees / (basePriceRupees - discountRupees)) * 100) : 28;
       setValue("pricing.gstRate", calculatedGstRate === 18 ? 18 : 28, { shouldValidate: true });
     }
-  }, [selectedSale, setValue]);
+  }, [selectedSale, setValue, isEditMode]);
   
   // Live Pricing
   const p = watch("pricing");
@@ -110,14 +156,29 @@ export function InvoiceWizardPage() {
   };
 
   const onSubmit = (data: any) => {
-    createMutation.mutate(data);
+    if (isEditMode) {
+      updateMutation.mutate({ id: invoiceId as string, data });
+    } else {
+      createMutation.mutate(data);
+    }
   };
+
+  if (isEditMode && isInvoiceLoading && !invoice) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground animate-pulse">Loading invoice details...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 pb-12 animate-in fade-in duration-500">
       <PageHeader 
-        title="Generate Invoice" 
-        description="Draft a final tax invoice for a completed vehicle sale."
+        title={isEditMode ? "Edit Invoice Details" : "Create Invoice"} 
+        description={isEditMode ? "Update details of the generated vehicle invoice." : "Generate a new tax invoice linked to an active sales record."}
         action={
           <Button variant="outline" onClick={() => navigate({ to: "/invoices" })}>
             Cancel
@@ -394,9 +455,9 @@ export function InvoiceWizardPage() {
                     Next <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                 ) : (
-                  <Button onClick={handleSubmit((d) => onSubmit(d))} disabled={createMutation.isPending} className="shadow-sm">
-                    {createMutation.isPending ? "Generating..." : "Generate Invoice"}
-                    {!createMutation.isPending && <Save className="ml-2 h-4 w-4" />}
+                  <Button onClick={handleSubmit((d) => onSubmit(d))} disabled={createMutation.isPending || updateMutation.isPending} className="shadow-sm">
+                    {createMutation.isPending || updateMutation.isPending ? "Processing..." : (isEditMode ? "Update Invoice Details" : "Generate Invoice")}
+                    {!(createMutation.isPending || updateMutation.isPending) && <Save className="ml-2 h-4 w-4" />}
                   </Button>
                 )}
               </div>

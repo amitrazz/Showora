@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
-import { useParams } from "@tanstack/react-router";
+import { useParams, Link } from "@tanstack/react-router";
 import { useExpense, useRecordExpensePayment } from "../hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatCurrency } from "@/utils/formatters";
+import { formatPaise as formatCurrency } from "@/utils/formatters";
 import { format, formatDistanceToNow } from "date-fns";
 import { 
   FileText, Download, MoreHorizontal, IndianRupee, Clock, Check, 
-  CreditCard, Building2, UploadCloud, ShieldCheck, XCircle 
+  CreditCard, Building2, UploadCloud, ShieldCheck, XCircle, Pencil 
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -194,6 +194,11 @@ export function ExpenseWorkspacePage() {
                       Record Payment
                     </Button>
                   )}
+                  <Link to="/expenses/$expenseId/edit" params={{ expenseId: expense.id }}>
+                    <Button variant="outline" className="shadow-sm">
+                      <Pencil className="mr-2 h-4 w-4" /> Edit Expense
+                    </Button>
+                  </Link>
                   <Button variant="ghost" size="icon" className="border shadow-sm">
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>

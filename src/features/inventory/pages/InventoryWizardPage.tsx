@@ -1,15 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createInventoryWizardSchema, CreateInventoryWizardForm } from "../schemas";
-import { useReceiveInventory } from "../hooks";
+import { useReceiveInventory, useInventoryVehicle, useUpdateInventory } from "../hooks";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ChevronRight, ChevronLeft, Save, Truck } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useParams } from "@tanstack/react-router";
 
 const steps = [
   { id: "supplier", title: "Supplier" },
@@ -22,20 +22,62 @@ const steps = [
 export function InventoryWizardPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const navigate = useNavigate();
+  const { inventoryId } = useParams({ strict: false });
+  const { data: vehicle, isLoading } = useInventoryVehicle(inventoryId as string);
   const receiveMutation = useReceiveInventory();
+  const updateMutation = useUpdateInventory();
+
+  const isEditMode = !!inventoryId;
 
   const form = useForm<CreateInventoryWizardForm>({
     resolver: zodResolver(createInventoryWizardSchema) as any,
     defaultValues: {
       supplierInfo: { supplier: "", purchaseOrderNumber: "", purchaseDate: new Date().toISOString().split('T')[0], invoiceNumber: "" },
       vehicleInfo: { make: "", model: "", variant: "", color: "", vin: "", engineNumber: "", chassisNumber: "", manufacturingYear: new Date().getFullYear(), fuelType: "Petrol", transmission: "Manual" },
-      pricing: { purchaseCost: 0, mrp: 0, sellingPrice: 0 },
+      pricing: { purchaseCost: 0, mrp: 0, sellingPrice: 0, gstAmount: 0, roadTax: 0, accessoriesCost: 0 },
       locationInfo: { location: "Warehouse", rackOrBin: "", storageNotes: "" }
     },
     mode: "onChange",
   });
 
-  const { register, handleSubmit, formState: { errors }, trigger, watch } = form;
+  const { register, handleSubmit, formState: { errors }, trigger, watch, reset } = form;
+
+  useEffect(() => {
+    if (!vehicle) return;
+    reset({
+      supplierInfo: {
+        supplier: vehicle.supplier ?? "",
+        purchaseOrderNumber: vehicle.purchaseOrderNumber ?? "",
+        purchaseDate: vehicle.purchaseDate ? vehicle.purchaseDate.split('T')[0] : "",
+        invoiceNumber: vehicle.invoiceNumber ?? "",
+      },
+      vehicleInfo: {
+        make: vehicle.make ?? "",
+        model: vehicle.model ?? "",
+        variant: vehicle.variant ?? "",
+        color: vehicle.color ?? "",
+        vin: vehicle.vin ?? "",
+        engineNumber: vehicle.engineNumber ?? "",
+        chassisNumber: vehicle.chassisNumber ?? "",
+        manufacturingYear: vehicle.manufacturingYear ?? new Date().getFullYear(),
+        fuelType: vehicle.fuelType ?? "Petrol",
+        transmission: vehicle.transmission ?? "Manual",
+      },
+      pricing: {
+        purchaseCost: vehicle.purchaseCost ?? 0,
+        mrp: vehicle.mrp ?? 0,
+        sellingPrice: vehicle.sellingPrice ?? 0,
+        gstAmount: vehicle.gstAmount ?? 0,
+        roadTax: vehicle.roadTax ?? 0,
+        accessoriesCost: vehicle.accessoriesCost ?? 0,
+      },
+      locationInfo: {
+        location: vehicle.location ?? "Warehouse",
+        rackOrBin: vehicle.rackOrBin ?? "",
+        storageNotes: "",
+      },
+    });
+  }, [vehicle, reset]);
 
   const handleNext = async () => {
     const stepIds = ["supplierInfo", "vehicleInfo", "pricing", "locationInfo", "review"] as const;
@@ -52,14 +94,29 @@ export function InventoryWizardPage() {
   };
 
   const onSubmit = (data: any) => {
-    receiveMutation.mutate(data);
+    if (isEditMode) {
+      updateMutation.mutate({ id: inventoryId as string, data });
+    } else {
+      receiveMutation.mutate(data);
+    }
   };
+
+  if (isEditMode && isLoading && !vehicle) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground animate-pulse">Loading vehicle details...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-4xl space-y-8 pb-12 animate-in fade-in duration-500">
       <PageHeader 
-        title="Receive Inventory" 
-        description="Add a new vehicle to the showroom stock."
+        title={isEditMode ? "Edit Vehicle Details" : "Receive Inventory"} 
+        description={isEditMode ? "Update details of the vehicle in showroom stock." : "Add a new vehicle to the showroom stock."}
         action={
           <Button variant="outline" onClick={() => navigate({ to: "/inventory" })}>
             Cancel
@@ -309,12 +366,14 @@ export function InventoryWizardPage() {
               </Button>
             ) : (
               <div className="flex gap-3">
-                <Button variant="secondary" onClick={handleSubmit((d) => onSubmit(d))} disabled={receiveMutation.isPending} className="shadow-sm hidden sm:flex">
-                  Receive & Add Another
-                </Button>
-                <Button onClick={handleSubmit((d) => onSubmit(d))} disabled={receiveMutation.isPending} className="shadow-sm">
-                  {receiveMutation.isPending ? "Receiving..." : "Receive to Stock"}
-                  {!receiveMutation.isPending && <Save className="ml-2 h-4 w-4" />}
+                {!isEditMode && (
+                  <Button variant="secondary" onClick={handleSubmit((d) => onSubmit(d))} disabled={receiveMutation.isPending} className="shadow-sm hidden sm:flex">
+                    Receive & Add Another
+                  </Button>
+                )}
+                <Button onClick={handleSubmit((d) => onSubmit(d))} disabled={receiveMutation.isPending || updateMutation.isPending} className="shadow-sm">
+                  {receiveMutation.isPending || updateMutation.isPending ? (isEditMode ? "Updating..." : "Receiving...") : (isEditMode ? "Update Vehicle" : "Receive to Stock")}
+                  {!(receiveMutation.isPending || updateMutation.isPending) && <Save className="ml-2 h-4 w-4" />}
                 </Button>
               </div>
             )}

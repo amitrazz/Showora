@@ -32,5 +32,35 @@ export const customerService = {
   updateCustomer: async (id: string, data: CreateCustomerWizardForm): Promise<Customer> => {
     const response = await api.patch<Customer>(`/customers/${id}`, data);
     return response.data;
+  },
+
+  exportCustomers: async (): Promise<Blob> => {
+    const response = await api.get('/customers/export', {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  importCustomers: async (file: File): Promise<{
+    success: boolean;
+    importedCount: number;
+    failedCount: number;
+    imported: string[];
+    errors: string[];
+  }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post<{
+      success: boolean;
+      importedCount: number;
+      failedCount: number;
+      imported: string[];
+      errors: string[];
+    }>('/customers/import', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
   }
 };

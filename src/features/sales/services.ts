@@ -38,7 +38,7 @@ export const salesService = {
       grandTotal,
       initialPaymentAmount: data.payment.initialPaymentAmount,
       paymentMethod: data.payment.method,
-      referenceId: data.payment.referenceId,
+      referenceId: data.payment.referenceId || 'N/A',
       financeRequired: data.finance.required,
       financePartner: data.finance.partner,
       financeLoanAmount: data.finance.loanAmount,
@@ -48,6 +48,39 @@ export const salesService = {
     };
 
     const response = await api.post<SalesRecord>('/sales', payload);
+    return response.data;
+  },
+
+  updateSale: async (id: string, data: CreateSaleWizardForm): Promise<SalesRecord> => {
+    const { basePrice, accessoriesPrice, registrationTax, roadTax, insurance, gstAmount, discount, exchangeBonus } = data.pricing;
+    const grandTotal = basePrice + accessoriesPrice + registrationTax + roadTax + insurance + gstAmount - discount - exchangeBonus;
+
+    const payload = {
+      customerId: data.customer.customerId,
+      inventoryId: data.vehicle.inventoryId,
+      salesExecutive: data.delivery.executive || 'Current User',
+      branch: 'Main Showroom',
+      basePrice,
+      accessoriesPrice,
+      registrationTax,
+      roadTax,
+      insurance,
+      gstAmount,
+      discount,
+      exchangeBonus,
+      grandTotal,
+      initialPaymentAmount: data.payment.initialPaymentAmount,
+      paymentMethod: data.payment.method,
+      referenceId: data.payment.referenceId || 'N/A',
+      financeRequired: data.finance.required,
+      financePartner: data.finance.partner,
+      financeLoanAmount: data.finance.loanAmount,
+      expectedDeliveryDate: data.delivery.expectedDate,
+      deliveryExecutive: data.delivery.executive,
+      deliveryNotes: data.delivery.notes
+    };
+
+    const response = await api.patch<SalesRecord>(`/sales/${id}`, payload);
     return response.data;
   },
 

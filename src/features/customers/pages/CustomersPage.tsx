@@ -1,17 +1,21 @@
-import { useCustomers, useCustomerMetrics } from "../hooks";
+import { useCustomers, useCustomerMetrics, useImportCustomers } from "../hooks";
+import { useSales } from "../../sales/hooks";
 import { DataTable } from "@/components/common/DataTable";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatsCard } from "@/components/common/StatsCard";
-import { formatCurrency } from "@/utils/formatters";
+import { formatPaise as formatCurrency } from "@/utils/formatters";
 import { ColumnDef } from "@tanstack/react-table";
 import { Customer } from "../types";
-import { Users, UserPlus, IndianRupee, HandCoins, Plus, Download, Upload, Eye, Pencil } from "lucide-react";
+import { Users, UserPlus, IndianRupee, HandCoins, Plus, Download, Upload, Eye, Pencil, X, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@tanstack/react-router";
 import { EmptyState } from "@/components/common/EmptyState";
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { customerService } from "../services";
+import { toast } from "sonner";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const customerColumns: ColumnDef<Customer>[] = [
   {
@@ -107,8 +111,75 @@ export function CustomersPage() {
   const [previousCursors, setPreviousCursors] = useState<(string | undefined)[]>([]);
   const { data: customerPage, isLoading } = useCustomers({ cursor, limit: 10 });
   const { data: metrics } = useCustomerMetrics();
+  const { data: salesList } = useSales();
 
-  const customers = customerPage?.data ?? [];
+  const importMutation = useImportCustomers();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importErrors, setImportErrors] = useState<string[]>([]);
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      const toastId = toast.loading('Exporting customers...');
+      const blob = await customerService.exportCustomers();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `customers_export_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.dismiss(toastId);
+      toast.success('Customers exported successfully');
+    } catch (error: any) {
+      toast.error('Failed to export customers', {
+        description: error.message || 'An error occurred during export.',
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Reset input
+    event.target.value = '';
+
+    const toastId = toast.loading('Uploading and importing customers...');
+    importMutation.mutate(file, {
+      onSuccess: (result) => {
+        toast.dismiss(toastId);
+        if (result.errors && result.errors.length > 0) {
+          setImportErrors(result.errors);
+          setIsErrorModalOpen(true);
+        }
+      },
+      onError: () => {
+        toast.dismiss(toastId);
+      }
+    });
+  };
+
+  const rawCustomers = customerPage?.data ?? [];
+  const customers = rawCustomers.map((customer) => {
+    const customerSales = salesList?.filter(sale => sale.customerId === customer.id) || [];
+    const totalPurchasesCount = customerSales.length || customer.totalPurchases || 0;
+    const computedLtv = customerSales.reduce((sum, sale) => sum + (sale.grandTotal || 0), 0) || customer.lifetimeValue || 0;
+    const computedOutstanding = customerSales.reduce((sum, sale) => sum + (sale.outstandingBalance || 0), 0) || customer.outstandingAmount || 0;
+    return {
+      ...customer,
+      totalPurchases: totalPurchasesCount,
+      lifetimeValue: computedLtv,
+      outstandingAmount: computedOutstanding,
+    };
+  });
+  const totalOutstandingSales = salesList?.reduce((sum, sale) => sum + (sale.outstandingBalance || 0), 0) ?? metrics?.outstandingAmount ?? 0;
+  const totalLtvRevenue = salesList?.reduce((sum, sale) => sum + (sale.grandTotal || 0), 0) ?? metrics?.totalRevenue ?? 0;
   const currentPageIndex = previousCursors.length;
 
   const goToNextPage = () => {
@@ -136,18 +207,38 @@ export function CustomersPage() {
 
   return (
     <div className="space-y-8 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept=".csv"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
       <PageHeader
         title="Customers"
         description="Manage customers, purchase history, finance, and showroom relationships."
         action={
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" className="hidden md:flex shadow-sm">
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden md:flex shadow-sm"
+              onClick={handleExport}
+              disabled={isExporting}
+            >
               <Download className="mr-2 h-4 w-4" />
-              Export
+              {isExporting ? 'Exporting...' : 'Export'}
             </Button>
-            <Button variant="outline" size="sm" className="hidden md:flex shadow-sm">
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden md:flex shadow-sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={importMutation.isPending}
+            >
               <Upload className="mr-2 h-4 w-4" />
-              Import
+              {importMutation.isPending ? 'Importing...' : 'Import'}
             </Button>
             <Link to="/customers/new">
               <Button className="shadow-sm">
@@ -173,13 +264,13 @@ export function CustomersPage() {
           />
           <StatsCard
             title="Outstanding Amount"
-            value={formatCurrency(metrics.outstandingAmount)}
+            value={formatCurrency(totalOutstandingSales)}
             icon={<HandCoins className="h-4 w-4" />}
             className="border-destructive/20 bg-destructive/5"
           />
           <StatsCard
             title="Total LTV Revenue"
-            value={formatCurrency(metrics.totalRevenue)}
+            value={formatCurrency(totalLtvRevenue)}
             icon={<IndianRupee className="h-4 w-4" />}
             className="bg-gradient-to-br from-card to-card/50"
           />
@@ -210,6 +301,33 @@ export function CustomersPage() {
           onAction={() => window.location.href = '/customers/new'}
         />
       )}
+
+      <Dialog open={isErrorModalOpen}>
+        <DialogContent className="max-w-2xl bg-card border border-border p-6 rounded-xl shadow-premium">
+          <div className="flex justify-between items-center pb-4 border-b border-border/80">
+            <div className="flex items-center gap-2 text-destructive font-semibold">
+              <AlertTriangle className="h-5 w-5" />
+              <h3>Import Verification Logs</h3>
+            </div>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setIsErrorModalOpen(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="mt-4 max-h-[300px] overflow-y-auto space-y-2 pr-2">
+            <p className="text-sm text-muted-foreground mb-3">
+              The following rows encountered issues and were not imported. Please review and update your CSV file:
+            </p>
+            {importErrors.map((err, idx) => (
+              <div key={idx} className="p-3 bg-destructive/5 text-destructive border border-destructive/10 rounded-lg text-sm font-mono">
+                {err}
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end pt-4 border-t border-border/80 mt-4">
+            <Button onClick={() => setIsErrorModalOpen(false)}>Dismiss</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,14 +1,17 @@
 import { useState } from "react";
-import { useParams } from "@tanstack/react-router";
+import { useParams, Link } from "@tanstack/react-router";
 import { useCustomer } from "../hooks";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatCurrency } from "@/utils/formatters";
+import { formatPaise as formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
 import { Edit, Mail, Phone, Plus, ShieldCheck, FileText, IndianRupee } from "lucide-react";
 import { OverviewTab } from "../components/profile/OverviewTab";
 import { TimelineTab } from "../components/profile/TimelineTab";
+import { useSales } from "../../sales/hooks";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Check } from "lucide-react";
 
 const tabs = [
   { id: "overview", label: "Overview" },
@@ -22,6 +25,7 @@ export function CustomerProfilePage() {
   const { customerId } = useParams({ strict: false });
   const { data: customer, isLoading } = useCustomer(customerId as string);
   const [activeTab, setActiveTab] = useState("overview");
+  const { data: salesList } = useSales();
 
   if (isLoading) {
     return (
@@ -37,6 +41,11 @@ export function CustomerProfilePage() {
   if (!customer) {
     return <div className="p-8 text-center text-muted-foreground">Customer not found</div>;
   }
+
+  const customerSales = salesList?.filter(sale => sale.customerId === customer.id) || [];
+  const totalPurchasesCount = customerSales.length || customer.totalPurchases || 0;
+  const computedLtv = customerSales.reduce((sum, sale) => sum + (sale.grandTotal || 0), 0) || customer.lifetimeValue || 0;
+  const computedOutstanding = customerSales.reduce((sum, sale) => sum + (sale.outstandingBalance || 0), 0) || customer.outstandingAmount || 0;
 
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-500">
@@ -72,12 +81,16 @@ export function CustomerProfilePage() {
             </div>
 
             <div className="flex items-center gap-3 w-full sm:w-auto">
-              <Button variant="outline" className="shadow-sm flex-1 sm:flex-none">
-                <Edit className="mr-2 h-4 w-4" /> Edit Profile
-              </Button>
-              <Button className="shadow-sm flex-1 sm:flex-none">
-                <Plus className="mr-2 h-4 w-4" /> New Sale
-              </Button>
+              <Link to="/customers/$customerId/edit" params={{ customerId: customer.id }} className="flex-1 sm:flex-none">
+                <Button variant="outline" className="shadow-sm w-full">
+                  <Edit className="mr-2 h-4 w-4" /> Edit Profile
+                </Button>
+              </Link>
+              <Link to="/sales/new" className="flex-1 sm:flex-none">
+                <Button className="shadow-sm w-full">
+                  <Plus className="mr-2 h-4 w-4" /> New Sale
+                </Button>
+              </Link>
             </div>
           </div>
           
@@ -85,17 +98,17 @@ export function CustomerProfilePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 border-t border-border/50">
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Lifetime Value</p>
-              <p className="text-lg font-semibold">{formatCurrency(customer.lifetimeValue)}</p>
+              <p className="text-lg font-semibold">{formatCurrency(computedLtv)}</p>
             </div>
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Outstanding</p>
-              <p className={`text-lg font-semibold ${customer.outstandingAmount > 0 ? "text-destructive" : ""}`}>
-                {formatCurrency(customer.outstandingAmount)}
+              <p className={`text-lg font-semibold ${computedOutstanding > 0 ? "text-destructive" : ""}`}>
+                {formatCurrency(computedOutstanding)}
               </p>
             </div>
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Total Purchases</p>
-              <p className="text-lg font-semibold">{customer.totalPurchases}</p>
+              <p className="text-lg font-semibold">{totalPurchasesCount}</p>
             </div>
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Customer Since</p>
@@ -128,16 +141,87 @@ export function CustomerProfilePage() {
         {activeTab === "overview" && <OverviewTab customer={customer} />}
         {activeTab === "timeline" && <TimelineTab timeline={customer.timeline} />}
         {activeTab === "purchases" && (
-           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border rounded-2xl bg-card border-dashed">
-             <FileText className="h-10 w-10 mb-4 opacity-50" />
-             <p>Purchases ledger coming soon</p>
-           </div>
+          <div className="space-y-4 animate-in fade-in duration-500">
+            {customerSales.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border rounded-2xl bg-card border-dashed">
+                <FileText className="h-10 w-10 mb-4 opacity-50" />
+                <p>No purchases recorded for this customer yet.</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {customerSales.map((sale) => (
+                  <Card key={sale.id} className="shadow-sm border-border/50 bg-card hover:bg-muted/10 transition-colors">
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <span className="font-mono text-xs font-semibold text-primary">
+                          #{sale.id.substring(0, 8).toUpperCase()}
+                        </span>
+                        <Badge variant="outline" className={sale.delivery.status === 'Completed' ? 'text-emerald-500 bg-emerald-500/10' : ''}>
+                          {sale.delivery.status}
+                        </Badge>
+                      </div>
+                      <CardTitle className="text-base font-semibold mt-2">
+                        {sale.vehicleMake} {sale.vehicleModel}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-2 text-sm space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Total Price:</span>
+                        <span className="font-mono font-medium">{formatCurrency(sale.grandTotal)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Outstanding:</span>
+                        <span className={`font-mono font-medium ${sale.outstandingBalance > 0 ? "text-destructive" : "text-emerald-500"}`}>
+                          {sale.outstandingBalance > 0 ? formatCurrency(sale.outstandingBalance) : "Paid"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs text-muted-foreground pt-2 border-t border-border/50">
+                        <span>Date: {format(new Date(sale.saleDate), 'dd MMM yyyy')}</span>
+                        <Link to="/sales/$saleId" params={{ saleId: sale.id }} className="text-primary hover:underline font-medium">
+                          View Details →
+                        </Link>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
         )}
         {activeTab === "payments" && (
-           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border rounded-2xl bg-card border-dashed">
-             <IndianRupee className="h-10 w-10 mb-4 opacity-50" />
-             <p>Payment history coming soon</p>
-           </div>
+          <div className="space-y-4 animate-in fade-in duration-500">
+            {customerSales.flatMap(s => s.payments || []).length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border rounded-2xl bg-card border-dashed">
+                <IndianRupee className="h-10 w-10 mb-4 opacity-50" />
+                <p>No payments recorded for this customer yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {customerSales.flatMap(s => (s.payments || []).map(p => ({ ...p, vehicleName: `${s.vehicleMake} ${s.vehicleModel}`, saleId: s.id }))).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((payment) => (
+                  <div key={payment.id} className="flex justify-between items-center p-4 rounded-xl border border-border/50 bg-card hover:bg-muted/40 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center">
+                        <Check className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm flex items-center gap-2">
+                          {payment.method} 
+                          <Badge variant="outline" className="text-xs bg-muted">{payment.status}</Badge>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Ref: {payment.referenceId || 'N/A'} • {payment.vehicleName}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground/80 mt-0.5">
+                          {format(new Date(payment.date), 'dd MMM yyyy, HH:mm')}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="font-mono font-medium text-emerald-600">+{formatCurrency(payment.amount)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
         {activeTab === "documents" && (
            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border rounded-2xl bg-card border-dashed">

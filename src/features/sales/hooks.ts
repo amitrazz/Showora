@@ -32,18 +32,13 @@ export const useCreateSale = () => {
 
   return useMutation({
     mutationFn: (data: CreateSaleWizardForm) => salesService.createSale(data),
-    onSuccess: (newSale) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       queryClient.invalidateQueries({ queryKey: ['sales-metrics'] });
-      
-      // In a real app, this would also invalidate inventory and customer queries 
-      // since allocating a vehicle affects stock status.
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
 
-      toast.success('Sale created successfully', {
-        description: `Invoice ${newSale.invoiceNumber} generated.`,
-      });
-      navigate({ to: `/sales/${newSale.id}` });
+      toast.success('Sale created successfully');
+      navigate({ to: '/sales' });
     },
     onError: (error) => {
       toast.error('Failed to create sale', {
@@ -76,3 +71,25 @@ export const useRecordSalesPayment = (id: string) => {
   });
 };
 
+export const useUpdateSale = () => {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: CreateSaleWizardForm }) =>
+      salesService.updateSale(id, data),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      queryClient.invalidateQueries({ queryKey: ['sales', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['sales-metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      toast.success('Sale updated successfully');
+      navigate({ to: '/sales/$saleId', params: { saleId: variables.id } });
+    },
+    onError: (error: any) => {
+      toast.error('Failed to update sale', {
+        description: error.message,
+      });
+    },
+  });
+};

@@ -32,14 +32,12 @@ export const useCreateInvoice = () => {
 
   return useMutation({
     mutationFn: (data: CreateInvoiceWizardForm) => invoiceService.createInvoice(data),
-    onSuccess: (newInvoice) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoice-metrics'] });
 
-      toast.success('Invoice Generated', {
-        description: `Invoice ${newInvoice.invoiceNumber} created successfully.`,
-      });
-      navigate({ to: `/invoices/${newInvoice.id}` });
+      toast.success('Invoice Generated successfully');
+      navigate({ to: '/invoices' });
     },
     onError: (error) => {
       toast.error('Failed to generate Invoice', {
@@ -72,3 +70,24 @@ export const useRecordInvoicePayment = (id: string) => {
   });
 };
 
+export const useUpdateInvoice = () => {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: CreateInvoiceWizardForm }) =>
+      invoiceService.updateInvoice(id, data),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['invoice-metrics'] });
+      toast.success('Invoice updated successfully');
+      navigate({ to: '/invoices/$invoiceId', params: { invoiceId: variables.id } });
+    },
+    onError: (error: any) => {
+      toast.error('Failed to update Invoice', {
+        description: error.message,
+      });
+    },
+  });
+};

@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createPurchaseWizardSchema, CreatePurchaseWizardForm } from "../schemas";
-import { useCreatePurchase } from "../hooks";
+import { useCreatePurchase, usePurchase, useUpdatePurchase } from "../hooks";
 import { mockSuppliers } from "../data";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ChevronRight, ChevronLeft, Save, IndianRupee, Building, Truck, Banknote, Package, Plus, Trash2 } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import { formatCurrency } from "@/utils/formatters";
 
 const steps = [
@@ -25,7 +25,12 @@ const steps = [
 export function PurchaseWizardPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const navigate = useNavigate();
+  const { purchaseId } = useParams({ strict: false });
+  const { data: purchase, isLoading: isPurchaseLoading } = usePurchase(purchaseId as string);
   const createMutation = useCreatePurchase();
+  const updateMutation = useUpdatePurchase();
+
+  const isEditMode = !!purchaseId;
 
   const form = useForm<CreatePurchaseWizardForm>({
     resolver: zodResolver(createPurchaseWizardSchema) as any,
@@ -41,7 +46,42 @@ export function PurchaseWizardPage() {
     mode: "onChange",
   });
 
-  const { register, control, handleSubmit, formState: { errors }, trigger, watch } = form;
+  const { register, control, handleSubmit, formState: { errors }, trigger, watch, reset } = form;
+
+  useEffect(() => {
+    if (!purchase) return;
+    reset({
+      supplier: {
+        supplierId: purchase.supplierId ?? "",
+      },
+      items: purchase.items?.map(item => ({
+        make: item.make ?? "",
+        model: item.model ?? "",
+        variant: item.variant ?? "",
+        color: item.color ?? "",
+        quantityOrdered: item.quantityOrdered ?? 1,
+        unitCost: item.unitCost ?? 0,
+      })) ?? [{ make: "", model: "", variant: "", color: "", quantityOrdered: 1, unitCost: 0 }],
+      pricing: {
+        discount: purchase.discount ?? 0,
+        gstAmount: purchase.gstAmount ?? 0,
+        transportation: purchase.transportation ?? 0,
+        insurance: purchase.insurance ?? 0,
+        otherCharges: purchase.otherCharges ?? 0,
+      },
+      payment: {
+        terms: purchase.paymentTerms ?? "Net 30",
+        advancePayment: purchase.amountPaid ?? 0,
+        method: purchase.payments?.[0]?.method ?? "Bank Transfer",
+        referenceId: purchase.payments?.[0]?.referenceId ?? "",
+      },
+      delivery: {
+        expectedDeliveryDate: purchase.expectedDelivery ? purchase.expectedDelivery.split('T')[0] : new Date().toISOString().split('T')[0],
+        warehouse: purchase.warehouse ?? "Main Warehouse",
+        notes: purchase.deliveryNotes ?? "",
+      },
+    });
+  }, [purchase, reset]);
   
   const { fields, append, remove } = useFieldArray({
     control,
@@ -73,14 +113,29 @@ export function PurchaseWizardPage() {
   };
 
   const onSubmit = (data: any) => {
-    createMutation.mutate(data);
+    if (isEditMode) {
+      updateMutation.mutate({ id: purchaseId as string, data });
+    } else {
+      createMutation.mutate(data);
+    }
   };
+
+  if (isEditMode && isPurchaseLoading && !purchase) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground animate-pulse">Loading PO details...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 pb-12 animate-in fade-in duration-500">
       <PageHeader 
-        title="Create Purchase Order" 
-        description="Draft a new procurement order for vehicles or parts."
+        title={isEditMode ? "Edit Purchase Order" : "Create Purchase Order"} 
+        description={isEditMode ? "Update details of the vehicle purchase order record." : "Draft a new procurement order for vehicles or parts."}
         action={
           <Button variant="outline" onClick={() => navigate({ to: "/purchases" })}>
             Cancel
@@ -332,9 +387,9 @@ export function PurchaseWizardPage() {
                     Next <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                 ) : (
-                  <Button onClick={handleSubmit((d) => onSubmit(d))} disabled={createMutation.isPending} className="shadow-sm">
-                    {createMutation.isPending ? "Generating PO..." : "Place Order"}
-                    {!createMutation.isPending && <Save className="ml-2 h-4 w-4" />}
+                  <Button onClick={handleSubmit((d) => onSubmit(d))} disabled={createMutation.isPending || updateMutation.isPending} className="shadow-sm">
+                    {createMutation.isPending || updateMutation.isPending ? "Processing..." : (isEditMode ? "Update Purchase Order" : "Place Order")}
+                    {!(createMutation.isPending || updateMutation.isPending) && <Save className="ml-2 h-4 w-4" />}
                   </Button>
                 )}
               </div>

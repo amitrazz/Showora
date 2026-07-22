@@ -57,3 +57,34 @@ export const useUpdateCustomer = () => {
     }
   });
 };
+
+export const useImportCustomers = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => customerService.importCustomers(file),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      if (result.success) {
+        toast.success('Customers imported successfully', {
+          description: `Successfully imported ${result.importedCount} customer(s).`,
+        });
+      } else {
+        if (result.importedCount > 0) {
+          toast.warning('Import completed with errors', {
+            description: `Imported ${result.importedCount} customer(s), but ${result.failedCount} row(s) failed.`,
+          });
+        } else {
+          toast.error('Import failed', {
+            description: `${result.failedCount} row(s) failed to import.`,
+          });
+        }
+      }
+    },
+    onError: (error: any) => {
+      toast.error('Failed to import customers', {
+        description: error.response?.data?.message || error.message || 'An error occurred during import.',
+      });
+    },
+  });
+};

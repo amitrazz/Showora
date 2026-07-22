@@ -34,10 +34,33 @@ export const invoiceService = {
       gstRate: data.pricing.gstRate,
       paymentMethod: data.payment.method,
       amountPaid: data.payment.amountPaid,
-      referenceId: data.payment.referenceId
+      referenceId: data.payment.referenceId || 'N/A'
     };
 
     const response = await api.post<InvoiceRecord>('/invoices', payload);
+    return response.data;
+  },
+
+  updateInvoice: async (id: string, data: CreateInvoiceWizardForm): Promise<InvoiceRecord> => {
+    const payload = {
+      saleId: data.sale.saleId,
+      invoiceDate: data.metadata.invoiceDate,
+      dueDate: data.metadata.dueDate,
+      salesExecutive: data.metadata.salesExecutive,
+      branch: data.metadata.branch,
+      basePrice: data.pricing.basePrice,
+      accessoriesPrice: data.pricing.accessoriesPrice,
+      registrationTax: data.pricing.registrationTax,
+      insurance: data.pricing.insurance,
+      otherCharges: data.pricing.otherCharges,
+      discount: data.pricing.discount,
+      gstRate: data.pricing.gstRate,
+      paymentMethod: data.payment.method,
+      amountPaid: data.payment.amountPaid,
+      referenceId: data.payment.referenceId || 'N/A'
+    };
+
+    const response = await api.patch<InvoiceRecord>(`/invoices/${id}`, payload);
     return response.data;
   },
 

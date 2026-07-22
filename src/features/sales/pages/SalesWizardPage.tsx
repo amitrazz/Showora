@@ -2,14 +2,14 @@ import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createSaleWizardSchema, CreateSaleWizardForm } from "../schemas";
-import { useCreateSale } from "../hooks";
+import { useCreateSale, useSale, useUpdateSale } from "../hooks";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ChevronRight, ChevronLeft, Save, IndianRupee, Users, Truck, Banknote, Shield, Package } from "lucide-react";
-import { useNavigate, Link } from "@tanstack/react-router";
+import { useNavigate, Link, useParams } from "@tanstack/react-router";
 import { formatCurrency } from "@/utils/formatters";
 import { useCustomers, useCustomer } from "../../customers/hooks";
 import { useInventory } from "../../inventory/hooks";
@@ -27,9 +27,14 @@ const steps = [
 export function SalesWizardPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const navigate = useNavigate();
+  const { saleId } = useParams({ strict: false });
+  const { data: sale, isLoading: isSaleLoading } = useSale(saleId as string);
   const createMutation = useCreateSale();
+  const updateMutation = useUpdateSale();
   const { data: inventory } = useInventory();
-  const inventoryList = (inventory || []).filter(v => v.status === 'Available');
+  const inventoryList = (inventory || []).filter(v => v.status === 'Available' || (sale && v.id === sale.inventoryId));
+
+  const isEditMode = !!saleId;
 
   // Customer Search with Debounce
   const [searchTerm, setSearchTerm] = useState("");
@@ -75,7 +80,49 @@ export function SalesWizardPage() {
     mode: "onChange",
   });
 
-  const { register, handleSubmit, formState: { errors }, trigger, watch, setValue } = form;
+  const { register, handleSubmit, formState: { errors }, trigger, watch, setValue, reset } = form;
+
+  useEffect(() => {
+    if (!sale) return;
+    reset({
+      customer: {
+        customerId: sale.customerId ?? "",
+        isNewCustomer: false,
+      },
+      vehicle: {
+        inventoryId: sale.inventoryId ?? "",
+        reserveVehicle: true,
+      },
+      pricing: {
+        basePrice: (sale.basePrice ?? 0) / 100,
+        accessoriesPrice: (sale.accessoriesPrice ?? 0) / 100,
+        registrationTax: (sale.registrationTax ?? 0) / 100,
+        roadTax: (sale.roadTax ?? 0) / 100,
+        insurance: (sale.insurance ?? 0) / 100,
+        gstAmount: (sale.gstAmount ?? 0) / 100,
+        discount: (sale.discount ?? 0) / 100,
+        exchangeBonus: (sale.exchangeBonus ?? 0) / 100,
+      },
+      payment: {
+        method: sale.payments?.[0]?.method ?? "Bank Transfer",
+        initialPaymentAmount: (sale.payments?.[0]?.amount ?? 0) / 100,
+        referenceId: sale.payments?.[0]?.referenceId ?? "",
+      },
+      finance: {
+        required: sale.finance?.required ?? false,
+        partner: sale.finance?.partner ?? "",
+        loanAmount: (sale.finance?.loanAmount ?? 0) / 100,
+        downPayment: (sale.finance?.downPayment ?? 0) / 100,
+        interestRate: sale.finance?.interestRate ?? 0,
+        tenureMonths: sale.finance?.tenureMonths ?? 0,
+      },
+      delivery: {
+        expectedDate: sale.delivery?.expectedDate ? sale.delivery.expectedDate.split('T')[0] : new Date().toISOString().split('T')[0],
+        executive: sale.delivery?.executive ?? "",
+        notes: sale.delivery?.notes ?? "",
+      },
+    });
+  }, [sale, reset]);
 
   // Live Pricing Calculation
   const pricing = watch("pricing");
@@ -93,13 +140,13 @@ export function SalesWizardPage() {
 
   // Auto-populate pricing based on selected vehicle
   useEffect(() => {
-    if (selectedVehicle) {
+    if (selectedVehicle && !isEditMode) {
       setValue("pricing.basePrice", selectedVehicle.sellingPrice || 0, { shouldValidate: true });
       setValue("pricing.gstAmount", selectedVehicle.gstAmount || 0, { shouldValidate: true });
       setValue("pricing.roadTax", selectedVehicle.roadTax || 0, { shouldValidate: true });
       setValue("pricing.accessoriesPrice", selectedVehicle.accessoriesCost || 0, { shouldValidate: true });
     }
-  }, [selectedVehicle, setValue]);
+  }, [selectedVehicle, setValue, isEditMode]);
 
   // Sync loan amount to outstanding if finance is toggled
   useEffect(() => {
@@ -123,14 +170,29 @@ export function SalesWizardPage() {
   };
 
   const onSubmit = (data: any) => {
-    createMutation.mutate(data);
+    if (isEditMode) {
+      updateMutation.mutate({ id: saleId as string, data });
+    } else {
+      createMutation.mutate(data);
+    }
   };
+
+  if (isEditMode && isSaleLoading && !sale) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground animate-pulse">Loading deal details...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 pb-12 animate-in fade-in duration-500">
       <PageHeader 
-        title="Create Sale" 
-        description="Process a new vehicle sale and generate a quotation or invoice."
+        title={isEditMode ? "Edit Sale Details" : "Create Sale"} 
+        description={isEditMode ? "Update details of the vehicle sale record." : "Process a new vehicle sale and generate a quotation or invoice."}
         action={
           <Button variant="outline" onClick={() => navigate({ to: "/sales" })}>
             Cancel
@@ -480,9 +542,9 @@ export function SalesWizardPage() {
                     Next <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                 ) : (
-                  <Button onClick={handleSubmit((d) => onSubmit(d))} disabled={createMutation.isPending} className="shadow-sm">
-                    {createMutation.isPending ? "Processing..." : "Confirm & Generate Invoice"}
-                    {!createMutation.isPending && <Save className="ml-2 h-4 w-4" />}
+                  <Button onClick={handleSubmit((d) => onSubmit(d))} disabled={createMutation.isPending || updateMutation.isPending} className="shadow-sm">
+                    {createMutation.isPending || updateMutation.isPending ? "Processing..." : (isEditMode ? "Update Deal Details" : "Confirm & Generate Invoice")}
+                    {!(createMutation.isPending || updateMutation.isPending) && <Save className="ml-2 h-4 w-4" />}
                   </Button>
                 )}
               </div>

@@ -2,12 +2,12 @@ import { useSales, useSalesMetrics } from "../hooks";
 import { DataTable } from "@/components/common/DataTable";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatsCard } from "@/components/common/StatsCard";
-import { formatCurrency } from "@/utils/formatters";
+import { formatPaise as formatCurrency } from "@/utils/formatters";
 import { ColumnDef } from "@tanstack/react-table";
 import { SalesRecord } from "../types";
 import {
-  Plus, Download, Upload, MoreHorizontal,
-  IndianRupee, TrendingUp, HandCoins, Truck
+  Plus, Download, Upload,
+  IndianRupee, TrendingUp, HandCoins, Truck, Eye, Pencil
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -106,10 +106,19 @@ const salesColumns: ColumnDef<SalesRecord>[] = [
   },
   {
     id: "actions",
-    cell: () => (
-      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-        <MoreHorizontal className="h-4 w-4" />
-      </Button>
+    cell: ({ row }) => (
+      <div className="flex items-center justify-end gap-1">
+        <Link to="/sales/$saleId" params={{ saleId: row.original.id }}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" title="View deal">
+            <Eye className="h-4 w-4" />
+          </Button>
+        </Link>
+        <Link to="/sales/$saleId/edit" params={{ saleId: row.original.id }}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" title="Edit deal">
+            <Pencil className="h-4 w-4" />
+          </Button>
+        </Link>
+      </div>
     ),
   },
 ];

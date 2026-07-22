@@ -2,11 +2,12 @@ import { useState } from "react";
 import { useParams, Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatCurrency } from "@/utils/formatters";
+import { formatPaise as formatCurrency } from "@/utils/formatters";
 import { format, formatDistanceToNow } from "date-fns";
-import { Truck, Building, MoreHorizontal, FileText, IndianRupee, Shield, Clock, Check, Download, CreditCard, Banknote, User } from "lucide-react";
+import { Truck, Building, MoreHorizontal, FileText, IndianRupee, Shield, Clock, Check, CreditCard, Banknote, User, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSale, useRecordSalesPayment } from "../hooks";
+import { useInvoices } from "../../invoices/hooks";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
@@ -31,6 +32,8 @@ export function SalesWorkspacePage() {
   const [referenceId, setReferenceId] = useState("");
 
   const recordPaymentMutation = useRecordSalesPayment(saleId as string);
+  const { data: invoices } = useInvoices();
+  const linkedInvoice = invoices?.find(inv => inv.saleId === sale?.id);
 
   const openPaymentModal = () => {
     if (sale) {
@@ -115,10 +118,26 @@ export function SalesWorkspacePage() {
                       Record Payment
                     </Button>
                   )}
-                  <Button className="shadow-sm">
-                    <Download className="mr-2 h-4 w-4" />
-                    Download Invoice
-                  </Button>
+                  <Link to="/sales/$saleId/edit" params={{ saleId: sale.id }}>
+                    <Button variant="outline" className="shadow-sm">
+                      <Pencil className="mr-2 h-4 w-4" /> Edit Deal
+                    </Button>
+                  </Link>
+                  {linkedInvoice ? (
+                    <Link to="/invoices/$invoiceId" params={{ invoiceId: linkedInvoice.id }}>
+                      <Button className="shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white">
+                        <FileText className="mr-2 h-4 w-4" />
+                        View Invoice
+                      </Button>
+                    </Link>
+                  ) : (
+                    <a href={`/invoices/new?saleId=${sale.id}`}>
+                      <Button className="shadow-sm">
+                        <FileText className="mr-2 h-4 w-4" />
+                        Generate Invoice
+                      </Button>
+                    </a>
+                  )}
                   <Button variant="ghost" size="icon" className="border shadow-sm">
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
@@ -292,7 +311,7 @@ export function SalesWorkspacePage() {
             <CardContent className="p-6 sm:p-10">
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-lg font-medium">Payment Ledger</h3>
-                {sale.outstandingBalance > 0 && <Button variant="outline" size="sm"><Banknote className="h-4 w-4 mr-2" /> New Payment</Button>}
+                {sale.outstandingBalance > 0 && <Button variant="outline" size="sm" onClick={openPaymentModal}><Banknote className="h-4 w-4 mr-2" /> New Payment</Button>}
               </div>
               <div className="space-y-4">
                 {sale.payments.map((payment) => (
@@ -409,8 +428,22 @@ export function SalesWorkspacePage() {
         {activeTab === "invoice" && (
           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border rounded-2xl bg-card border-dashed">
             <FileText className="h-10 w-10 mb-4 opacity-50" />
-            <p>Invoice PDF generation coming soon</p>
-            <Button className="mt-4 shadow-sm"><Download className="mr-2 h-4 w-4" /> Preview Draft Invoice</Button>
+            <p>Invoice PDF is available in the Invoices section.</p>
+            {linkedInvoice ? (
+              <Link to="/invoices/$invoiceId" params={{ invoiceId: linkedInvoice.id }}>
+                <Button className="mt-4 shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white">
+                  <FileText className="mr-2 h-4 w-4" />
+                  View Invoice PDF
+                </Button>
+              </Link>
+            ) : (
+              <a href={`/invoices/new?saleId=${sale.id}`}>
+                <Button className="mt-4 shadow-sm">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Generate Invoice & View PDF
+                </Button>
+              </a>
+            )}
           </div>
         )}
       </div>

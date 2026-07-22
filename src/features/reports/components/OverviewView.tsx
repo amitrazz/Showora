@@ -8,7 +8,7 @@ import {
 import { StatsCard } from '@/components/common/StatsCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RevenueAreaChart, SalesBarChart, ModernDonutChart } from './Charts';
-import { formatCurrency } from '@/utils/formatters';
+import { formatPaise as formatCurrency } from '@/utils/formatters';
 import { IndianRupee, TrendingUp, Package, Users, Activity } from 'lucide-react';
 
 export const OverviewView = () => {

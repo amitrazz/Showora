@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { useParams } from "@tanstack/react-router";
+import { useParams, Link } from "@tanstack/react-router";
 import { useInventoryVehicle } from "../hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatCurrency } from "@/utils/formatters";
+import { formatPaise } from "@/utils/formatters";
 import { format, formatDistanceToNow } from "date-fns";
-import { Truck, MapPin, Building, MoreHorizontal, FileText, IndianRupee, Shield, ArrowRightLeft, PenTool, CheckCircle, Clock } from "lucide-react";
+import { Truck, MapPin, Building, MoreHorizontal, FileText, IndianRupee, Shield, ArrowRightLeft, PenTool, CheckCircle, Clock, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const tabs = [
@@ -84,6 +84,11 @@ export function InventoryWorkspacePage() {
                       Allocate
                     </Button>
                   )}
+                  <Link to="/inventory/$inventoryId/edit" params={{ inventoryId: vehicle.id }}>
+                    <Button variant="outline" className="shadow-sm">
+                      <Pencil className="mr-2 h-4 w-4" /> Edit
+                    </Button>
+                  </Link>
                   <Button variant="ghost" size="icon" className="border shadow-sm">
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
@@ -109,7 +114,7 @@ export function InventoryWorkspacePage() {
             </div>
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Cost / MRP</p>
-              <p className="text-sm font-semibold">{formatCurrency(vehicle.purchaseCost)} / {formatCurrency(vehicle.mrp)}</p>
+              <p className="text-sm font-semibold">{formatPaise(vehicle.purchaseCost)} / {formatPaise(vehicle.mrp)}</p>
             </div>
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Supplier</p>
@@ -234,15 +239,15 @@ export function InventoryWorkspacePage() {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Purchase Cost</span>
-                      <span className="text-sm font-mono font-semibold text-destructive">{formatCurrency(vehicle.purchaseCost)}</span>
+                      <span className="text-sm font-mono font-semibold text-destructive">{formatPaise(vehicle.purchaseCost)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">GST (Input)</span>
-                      <span className="text-sm font-mono font-semibold">{formatCurrency(vehicle.gstAmount)}</span>
+                      <span className="text-sm font-mono font-semibold">{formatPaise(vehicle.gstAmount)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Selling Price</span>
-                      <span className="text-sm font-mono font-semibold text-emerald-600">{formatCurrency(vehicle.sellingPrice)}</span>
+                      <span className="text-sm font-mono font-semibold text-emerald-600">{formatPaise(vehicle.sellingPrice)}</span>
                     </div>
                   </div>
                 </CardContent>

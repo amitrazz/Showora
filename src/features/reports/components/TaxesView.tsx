@@ -1,7 +1,7 @@
 import { useReportMetrics, useTaxRegister } from '../hooks';
 import { StatsCard } from '@/components/common/StatsCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency } from '@/utils/formatters';
+import { formatPaise as formatCurrency } from '@/utils/formatters';
 import { FileText, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 

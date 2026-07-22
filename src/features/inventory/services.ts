@@ -23,7 +23,42 @@ export const inventoryService = {
     return response.data;
   },
 
+  updateInventory: async (id: string, data: CreateInventoryWizardForm): Promise<InventoryVehicle> => {
+    const response = await api.patch<InventoryVehicle>(`/inventory/${id}`, data);
+    return response.data;
+  },
+
   transferInventory: async (id: string, toLocation: string, notes: string): Promise<void> => {
     await api.post(`/inventory/${id}/transfer`, { toLocation, notes });
+  },
+
+  exportInventory: async (): Promise<Blob> => {
+    const response = await api.get('/inventory/export', {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  importInventory: async (file: File): Promise<{
+    success: boolean;
+    importedCount: number;
+    failedCount: number;
+    imported: string[];
+    errors: string[];
+  }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post<{
+      success: boolean;
+      importedCount: number;
+      failedCount: number;
+      imported: string[];
+      errors: string[];
+    }>('/inventory/import', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
   }
 };

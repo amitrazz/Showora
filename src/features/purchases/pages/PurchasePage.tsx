@@ -2,13 +2,13 @@ import { usePurchases, usePurchaseMetrics } from "../hooks";
 import { DataTable } from "@/components/common/DataTable";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatsCard } from "@/components/common/StatsCard";
-import { formatCurrency } from "@/utils/formatters";
+import { formatPaise as formatCurrency } from "@/utils/formatters";
 import { ColumnDef } from "@tanstack/react-table";
 import { PurchaseOrder } from "../types";
 import { format } from "date-fns";
 import {
-  Plus, Download, Upload, MoreHorizontal,
-  PackageOpen, Truck, ClipboardList, Wallet
+  Plus, Download, Upload,
+  PackageOpen, Truck, ClipboardList, Wallet, Eye, Pencil
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -94,10 +94,19 @@ const purchaseColumns: ColumnDef<PurchaseOrder>[] = [
   },
   {
     id: "actions",
-    cell: () => (
-      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-        <MoreHorizontal className="h-4 w-4" />
-      </Button>
+    cell: ({ row }) => (
+      <div className="flex items-center justify-end gap-1">
+        <Link to="/purchases/$purchaseId" params={{ purchaseId: row.original.id }}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" title="View PO">
+            <Eye className="h-4 w-4" />
+          </Button>
+        </Link>
+        <Link to="/purchases/$purchaseId/edit" params={{ purchaseId: row.original.id }}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" title="Edit PO">
+            <Pencil className="h-4 w-4" />
+          </Button>
+        </Link>
+      </div>
     ),
   },
 ];

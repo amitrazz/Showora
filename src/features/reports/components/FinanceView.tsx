@@ -2,7 +2,7 @@ import { useReportMetrics, useExpenseCategories } from '../hooks';
 import { StatsCard } from '@/components/common/StatsCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ModernDonutChart } from './Charts';
-import { formatCurrency } from '@/utils/formatters';
+import { formatPaise as formatCurrency } from '@/utils/formatters';
 import { TrendingDown, Receipt } from 'lucide-react';
 
 export const FinanceView = () => {

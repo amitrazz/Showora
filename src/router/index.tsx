@@ -179,6 +179,36 @@ const settingsRoute = createRoute({
   component: SettingsPage,
 });
 
+const inventoryEditRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: "/inventory/$inventoryId/edit",
+  component: InventoryWizardPage,
+});
+
+const salesEditRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: "/sales/$saleId/edit",
+  component: SalesWizardPage,
+});
+
+const purchasesEditRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: "/purchases/$purchaseId/edit",
+  component: PurchaseWizardPage,
+});
+
+const invoicesEditRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: "/invoices/$invoiceId/edit",
+  component: InvoiceWizardPage,
+});
+
+const expensesEditRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: "/expenses/$expenseId/edit",
+  component: ExpenseWizardPage,
+});
+
 // Route Tree
 const routeTree = rootRoute.addChildren([
   authRoute.addChildren([loginRoute]),
@@ -192,18 +222,23 @@ const routeTree = rootRoute.addChildren([
     inventoryRoute,
     inventoryNewRoute,
     inventoryWorkspaceRoute,
+    inventoryEditRoute,
     salesRoute,
     salesNewRoute,
     salesWorkspaceRoute,
+    salesEditRoute,
     purchasesRoute,
     purchasesNewRoute,
     purchasesWorkspaceRoute,
+    purchasesEditRoute,
     invoicesRoute,
     invoicesNewRoute,
     invoicesWorkspaceRoute,
+    invoicesEditRoute,
     expensesRoute,
     expensesNewRoute,
     expensesWorkspaceRoute,
+    expensesEditRoute,
     reportsRoute,
     settingsRoute,
   ]),

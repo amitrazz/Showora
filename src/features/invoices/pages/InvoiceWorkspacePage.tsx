@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { useParams } from "@tanstack/react-router";
+import { useParams, Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatCurrency } from "@/utils/formatters";
+import { formatPaise as formatCurrency } from "@/utils/formatters";
 import { format, formatDistanceToNow } from "date-fns";
-import { Receipt, FileText, Download, Printer, Share2, MoreHorizontal, IndianRupee, Clock, Check, CreditCard } from "lucide-react";
+import { Receipt, FileText, Download, Printer, Share2, MoreHorizontal, IndianRupee, Clock, Check, CreditCard, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useInvoice, useRecordInvoicePayment } from "../hooks";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -116,6 +116,11 @@ export function InvoiceWorkspacePage() {
                       Record Payment
                     </Button>
                   )}
+                  <Link to="/invoices/$invoiceId/edit" params={{ invoiceId: invoice.id }}>
+                    <Button variant="outline" className="shadow-sm">
+                      <Pencil className="mr-2 h-4 w-4" /> Edit Invoice
+                    </Button>
+                  </Link>
                   <Button variant="ghost" size="icon" className="border shadow-sm">
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>

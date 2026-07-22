@@ -63,5 +63,13 @@ export const reportService = {
   getTaxRegister: async (filters?: FilterState): Promise<any[]> => {
     const response = await api.get<any[]>('/reports/tax-register', { params: filters });
     return response.data;
+  },
+
+  exportReport: async (reportName: string, filters?: FilterState): Promise<Blob> => {
+    const response = await api.get(`/reports/${reportName}/export`, {
+      params: filters,
+      responseType: 'blob',
+    });
+    return response.data;
   }
 };

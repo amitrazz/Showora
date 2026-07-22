@@ -1,19 +1,23 @@
-import { useExpenses, useExpenseMetrics } from "../hooks";
+import { useExpenses, useExpenseMetrics, useImportExpenses } from "../hooks";
 import { DataTable } from "@/components/common/DataTable";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatsCard } from "@/components/common/StatsCard";
-import { formatCurrency } from "@/utils/formatters";
+import { formatPaise as formatCurrency } from "@/utils/formatters";
 import { ColumnDef } from "@tanstack/react-table";
 import { ExpenseRecord } from "../types";
 import { format } from "date-fns";
 import {
-  Plus, Download, CheckSquare, MoreHorizontal,
-  Wallet, TrendingUp, Clock, AlertCircle, FileText
+  Plus, Download, Upload,
+  Wallet, TrendingUp, AlertCircle, AlertTriangle, FileText, Eye, Pencil, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@tanstack/react-router";
 import { EmptyState } from "@/components/common/EmptyState";
+import { useState, useRef } from "react";
+import { expenseService } from "../services";
+import { toast } from "sonner";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const expenseColumns: ColumnDef<ExpenseRecord>[] = [
   {
@@ -25,29 +29,22 @@ const expenseColumns: ColumnDef<ExpenseRecord>[] = [
         params={{ expenseId: row.original.id }}
         className="text-sm font-mono font-medium hover:text-primary transition-colors hover:underline"
       >
-        {row.original.expenseId}
+        #{row.original.id.substring(0, 8)}
       </Link>
     ),
   },
   {
     accessorKey: "title",
     header: "Expense Details",
-    cell: ({ row }) => (
-      <div className="flex flex-col max-w-[250px]">
-        <span className="text-sm font-medium truncate" title={row.original.title}>{row.original.title}</span>
-        <span className="text-xs text-muted-foreground">{row.original.vendor}</span>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "category",
-    header: "Category",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <Badge variant="outline" className="font-normal">{row.original.category}</Badge>
-        {row.original.isRecurring && <div title="Recurring Expense"><Clock className="h-3 w-3 text-blue-500" /></div>}
-      </div>
-    ),
+    cell: ({ row }) => {
+      const expense = row.original;
+      return (
+        <div className="flex flex-col">
+          <span className="text-sm font-medium">{expense.title}</span>
+          <span className="text-xs text-muted-foreground">{expense.category} • {expense.vendor}</span>
+        </div>
+      );
+    },
   },
   {
     accessorKey: "expenseDate",
@@ -55,22 +52,16 @@ const expenseColumns: ColumnDef<ExpenseRecord>[] = [
     cell: ({ row }) => <span className="text-sm">{format(new Date(row.original.expenseDate), 'dd MMM yyyy')}</span>,
   },
   {
-    accessorKey: "totalAmount",
-    header: "Amount",
-    cell: ({ row }) => <span className="text-sm font-medium font-mono">{formatCurrency(row.original.totalAmount)}</span>,
-  },
-  {
     accessorKey: "status",
-    header: "Approval",
+    header: "Status",
     cell: ({ row }) => {
       const status = row.original.status;
       const variants: Record<string, string> = {
+        'Paid': "bg-emerald-500/10 text-emerald-500",
+        'Partial': "bg-blue-500/10 text-blue-500",
+        'Unpaid': "bg-destructive/10 text-destructive",
         'Draft': "bg-muted text-muted-foreground",
-        'Submitted': "bg-amber-500/10 text-amber-500",
-        'Approved': "bg-emerald-500/10 text-emerald-500",
-        'Rejected': "bg-destructive/10 text-destructive",
-        'Paid': "bg-blue-500/10 text-blue-500",
-        'Cancelled': "bg-slate-500/10 text-slate-500",
+        'Void': "bg-muted text-muted-foreground line-through",
       };
       return (
         <Badge variant="outline" className={`border-transparent whitespace-nowrap ${variants[status] || "bg-muted"}`}>
@@ -99,10 +90,19 @@ const expenseColumns: ColumnDef<ExpenseRecord>[] = [
   },
   {
     id: "actions",
-    cell: () => (
-      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-        <MoreHorizontal className="h-4 w-4" />
-      </Button>
+    cell: ({ row }) => (
+      <div className="flex items-center justify-end gap-1">
+        <Link to="/expenses/$expenseId" params={{ expenseId: row.original.id }}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" title="View Expense">
+            <Eye className="h-4 w-4" />
+          </Button>
+        </Link>
+        <Link to="/expenses/$expenseId/edit" params={{ expenseId: row.original.id }}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" title="Edit Expense">
+            <Pencil className="h-4 w-4" />
+          </Button>
+        </Link>
+      </div>
     ),
   },
 ];
@@ -110,6 +110,58 @@ const expenseColumns: ColumnDef<ExpenseRecord>[] = [
 export function ExpensePage() {
   const { data: expenses, isLoading } = useExpenses();
   const { data: metrics } = useExpenseMetrics();
+  const importMutation = useImportExpenses();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importErrors, setImportErrors] = useState<string[]>([]);
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      const toastId = toast.loading('Exporting expenses...');
+      const blob = await expenseService.exportExpenses();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `expenses_export_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.dismiss(toastId);
+      toast.success('Expenses exported successfully');
+    } catch (error: any) {
+      toast.error('Failed to export expenses', {
+        description: error.message || 'An error occurred during export.',
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Reset input
+    event.target.value = '';
+
+    const toastId = toast.loading('Uploading and importing expenses...');
+    importMutation.mutate(file, {
+      onSuccess: (result) => {
+        toast.dismiss(toastId);
+        if (result.errors && result.errors.length > 0) {
+          setImportErrors(result.errors);
+          setIsErrorModalOpen(true);
+        }
+      },
+      onError: () => {
+        toast.dismiss(toastId);
+      }
+    });
+  };
 
   if (isLoading) {
     return (
@@ -124,18 +176,38 @@ export function ExpensePage() {
 
   return (
     <div className="space-y-8 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept=".csv"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
       <PageHeader
         title="Expense Management"
         description="Track operational expenses, reimburse employees, and monitor budgets."
         action={
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" className="hidden md:flex shadow-sm">
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden md:flex shadow-sm"
+              onClick={handleExport}
+              disabled={isExporting}
+            >
               <Download className="mr-2 h-4 w-4" />
-              Export
+              {isExporting ? 'Exporting...' : 'Export'}
             </Button>
-            <Button variant="outline" size="sm" className="hidden md:flex shadow-sm">
-              <CheckSquare className="mr-2 h-4 w-4" />
-              Bulk Approve
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden md:flex shadow-sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={importMutation.isPending}
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              {importMutation.isPending ? 'Importing...' : 'Import'}
             </Button>
             <Link to="/expenses/new">
               <Button className="shadow-sm">
@@ -200,6 +272,33 @@ export function ExpensePage() {
           onAction={() => window.location.href = '/expenses/new'}
         />
       )}
+
+      <Dialog open={isErrorModalOpen}>
+        <DialogContent className="max-w-2xl bg-card border border-border p-6 rounded-xl shadow-premium">
+          <div className="flex justify-between items-center pb-4 border-b border-border/80">
+            <div className="flex items-center gap-2 text-destructive font-semibold">
+              <AlertTriangle className="h-5 w-5" />
+              <h3>Import Verification Logs</h3>
+            </div>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setIsErrorModalOpen(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="mt-4 max-h-[300px] overflow-y-auto space-y-2 pr-2">
+            <p className="text-sm text-muted-foreground mb-3">
+              The following rows encountered issues and were not imported. Please review and update your CSV file:
+            </p>
+            {importErrors.map((err, idx) => (
+              <div key={idx} className="p-3 bg-destructive/5 text-destructive border border-destructive/10 rounded-lg text-sm font-mono">
+                {err}
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end pt-4 border-t border-border/80 mt-4">
+            <Button onClick={() => setIsErrorModalOpen(false)}>Dismiss</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

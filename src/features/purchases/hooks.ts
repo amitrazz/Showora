@@ -72,3 +72,27 @@ export const useRecordPurchasePayment = (id: string) => {
   });
 };
 
+export const useUpdatePurchase = () => {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: CreatePurchaseWizardForm }) =>
+      purchaseService.updatePurchase(id, data),
+    onSuccess: (updatedPurchase) => {
+      queryClient.invalidateQueries({ queryKey: ['purchases'] });
+      queryClient.invalidateQueries({ queryKey: ['purchases', updatedPurchase.id] });
+      queryClient.invalidateQueries({ queryKey: ['purchase-metrics'] });
+      toast.success('Purchase Order updated successfully', {
+        description: `${updatedPurchase.poNumber} has been updated.`,
+      });
+      navigate({ to: `/purchases/${updatedPurchase.id}` });
+    },
+    onError: (error: any) => {
+      toast.error('Failed to update Purchase Order', {
+        description: error.message,
+      });
+    },
+  });
+};
+

@@ -129,15 +129,15 @@ export function CustomerWizardPage() {
 
   const financeRequired = watch("finance.required");
 
-  if (isEditMode && isLoading) {
+  if (isEditMode && (isLoading || !customer)) {
     return <p>Loading...</p>;
   }
 
   return (
     <div className="mx-auto max-w-4xl space-y-8 pb-12 animate-in fade-in duration-500">
       <PageHeader
-        title={`${isEditMode ? `${customer.firstName} ${customer.lastName}` : "Create New Customer"}`}
-        description={isEditMode ? `Updating ${customer.firstName + " " + customer.lastName} details.` : "Creating new customer."}
+        title={`${isEditMode ? `${customer?.firstName} ${customer?.lastName}` : "Create New Customer"}`}
+        description={isEditMode ? `Updating ${customer?.firstName + " " + customer?.lastName} details.` : "Creating new customer."}
         action={
           <Button variant="outline" onClick={() => navigate({ to: "/customers" })}>
             Cancel

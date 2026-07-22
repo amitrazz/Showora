@@ -1,15 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createExpenseWizardSchema, CreateExpenseWizardForm } from "../schemas";
-import { useCreateExpense } from "../hooks";
+import { useCreateExpense, useExpense, useUpdateExpense } from "../hooks";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ChevronRight, ChevronLeft, Save, IndianRupee, Banknote, Building2, UploadCloud, FileText } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import { formatCurrency } from "@/utils/formatters";
 
 const steps = [
@@ -23,7 +23,12 @@ const steps = [
 export function ExpenseWizardPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const navigate = useNavigate();
+  const { expenseId } = useParams({ strict: false });
+  const { data: expense, isLoading: isExpenseLoading } = useExpense(expenseId as string);
   const createMutation = useCreateExpense();
+  const updateMutation = useUpdateExpense();
+
+  const isEditMode = !!expenseId;
 
   const form = useForm<CreateExpenseWizardForm>({
     resolver: zodResolver(createExpenseWizardSchema) as any,
@@ -35,7 +40,34 @@ export function ExpenseWizardPage() {
     mode: "onChange",
   });
 
-  const { register, trigger, watch, handleSubmit, formState: { errors } } = form;
+  const { register, trigger, watch, handleSubmit, formState: { errors }, reset } = form;
+
+  useEffect(() => {
+    if (!expense) return;
+    reset({
+      info: {
+        title: expense.title ?? "",
+        category: expense.category ?? "Utilities",
+        vendor: expense.vendor ?? "",
+        description: expense.description ?? "",
+        branch: expense.branch ?? "Downtown Main Showroom",
+        expenseDate: expense.expenseDate ? expense.expenseDate.split('T')[0] : new Date().toISOString().split('T')[0],
+        isRecurring: expense.isRecurring ?? false,
+        recurringFrequency: expense.recurringFrequency,
+      },
+      amount: {
+        subtotal: (expense.subtotal ?? 0) / 100,
+        gstAmount: (expense.gstAmount ?? 0) / 100,
+        discount: (expense.discount ?? 0) / 100,
+      },
+      payment: {
+        dueDate: expense.dueDate ? expense.dueDate.split('T')[0] : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        method: (expense.payments?.[0]?.method as any) ?? "Bank Transfer",
+        paidAmount: (expense.paidAmount ?? 0) / 100,
+        referenceId: expense.payments?.[0]?.referenceId ?? "",
+      },
+    });
+  }, [expense, reset]);
   
   // Live Pricing
   const a = watch("amount");
@@ -59,14 +91,29 @@ export function ExpenseWizardPage() {
   };
 
   const onSubmit = (data: any) => {
-    createMutation.mutate(data);
+    if (isEditMode) {
+      updateMutation.mutate({ id: expenseId as string, data });
+    } else {
+      createMutation.mutate(data);
+    }
   };
+
+  if (isEditMode && isExpenseLoading && !expense) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground animate-pulse">Loading expense details...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 pb-12 animate-in fade-in duration-500">
       <PageHeader 
-        title="Record Expense" 
-        description="Draft a new operational expense, bill, or reimbursement."
+        title={isEditMode ? "Edit Expense" : "Record Expense"} 
+        description={isEditMode ? "Update details of the operational expense record." : "Draft a new operational expense, bill, or reimbursement."}
         action={
           <Button variant="outline" onClick={() => navigate({ to: "/expenses" })}>
             Cancel
@@ -291,9 +338,9 @@ export function ExpenseWizardPage() {
                     Next <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                 ) : (
-                  <Button onClick={handleSubmit((d) => onSubmit(d))} disabled={createMutation.isPending} className="shadow-sm">
-                    {createMutation.isPending ? "Submitting..." : "Submit Expense"}
-                    {!createMutation.isPending && <Save className="ml-2 h-4 w-4" />}
+                  <Button onClick={handleSubmit((d) => onSubmit(d))} disabled={createMutation.isPending || updateMutation.isPending} className="shadow-sm">
+                    {createMutation.isPending || updateMutation.isPending ? "Processing..." : (isEditMode ? "Update Expense" : "Submit Expense")}
+                    {!(createMutation.isPending || updateMutation.isPending) && <Save className="ml-2 h-4 w-4" />}
                   </Button>
                 )}
               </div>

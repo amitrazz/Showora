@@ -40,9 +40,63 @@ export const useReceiveInventory = () => {
       });
       navigate({ to: '/inventory' });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error('Failed to receive inventory', {
         description: error.message,
+      });
+    },
+  });
+};
+
+export const useUpdateInventory = () => {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: CreateInventoryWizardForm }) =>
+      inventoryService.updateInventory(id, data),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-metrics'] });
+      toast.success('Inventory updated successfully');
+      navigate({ to: '/inventory/$inventoryId', params: { inventoryId: variables.id } });
+    },
+    onError: (error: any) => {
+      toast.error('Failed to update inventory', {
+        description: error.message,
+      });
+    },
+  });
+};
+
+export const useImportInventory = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => inventoryService.importInventory(file),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-metrics'] });
+      if (result.success) {
+        toast.success('Inventory imported successfully', {
+          description: `Successfully imported ${result.importedCount} vehicle(s).`,
+        });
+      } else {
+        if (result.importedCount > 0) {
+          toast.warning('Import completed with errors', {
+            description: `Imported ${result.importedCount} vehicle(s), but ${result.failedCount} row(s) failed.`,
+          });
+        } else {
+          toast.error('Import failed', {
+            description: `${result.failedCount} row(s) failed to import.`,
+          });
+        }
+      }
+    },
+    onError: (error: any) => {
+      toast.error('Failed to import inventory', {
+        description: error.response?.data?.message || error.message || 'An error occurred during import.',
       });
     },
   });

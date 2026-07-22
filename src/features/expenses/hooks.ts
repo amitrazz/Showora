@@ -32,14 +32,12 @@ export const useCreateExpense = () => {
 
   return useMutation({
     mutationFn: (data: CreateExpenseWizardForm) => expenseService.createExpense(data),
-    onSuccess: (newExpense) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       queryClient.invalidateQueries({ queryKey: ['expense-metrics'] });
 
-      toast.success('Expense Submitted', {
-        description: `Expense ${newExpense.expenseId} submitted for approval.`,
-      });
-      navigate({ to: `/expenses/${newExpense.id}` });
+      toast.success('Expense Submitted successfully');
+      navigate({ to: '/expenses' });
     },
     onError: (error) => {
       toast.error('Failed to submit Expense', {
@@ -72,3 +70,56 @@ export const useRecordExpensePayment = (id: string) => {
   });
 };
 
+export const useUpdateExpense = () => {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: CreateExpenseWizardForm }) =>
+      expenseService.updateExpense(id, data),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['expenses', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['expense-metrics'] });
+      toast.success('Expense updated successfully');
+      navigate({ to: '/expenses/$expenseId', params: { expenseId: variables.id } });
+    },
+    onError: (error: any) => {
+      toast.error('Failed to update Expense', {
+        description: error.message,
+      });
+    },
+  });
+};
+
+export const useImportExpenses = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => expenseService.importExpenses(file),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['expense-metrics'] });
+      if (result.success) {
+        toast.success('Expenses imported successfully', {
+          description: `Successfully imported ${result.importedCount} expense(s).`,
+        });
+      } else {
+        if (result.importedCount > 0) {
+          toast.warning('Import completed with errors', {
+            description: `Imported ${result.importedCount} expense(s), but ${result.failedCount} row(s) failed.`,
+          });
+        } else {
+          toast.error('Import failed', {
+            description: `${result.failedCount} row(s) failed to import.`,
+          });
+        }
+      }
+    },
+    onError: (error: any) => {
+      toast.error('Failed to import expenses', {
+        description: error.response?.data?.message || error.message || 'An error occurred during import.',
+      });
+    },
+  });
+};

@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { useParams } from "@tanstack/react-router";
+import { useParams, Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatCurrency } from "@/utils/formatters";
+import { formatPaise as formatCurrency } from "@/utils/formatters";
 import { format, formatDistanceToNow } from "date-fns";
-import { Truck, Building, MoreHorizontal, FileText, IndianRupee, Clock, Check, Download, CreditCard, PackageOpen, Banknote } from "lucide-react";
+import { Truck, Building, MoreHorizontal, FileText, IndianRupee, Clock, Check, Download, CreditCard, PackageOpen, Banknote, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePurchase, useRecordPurchasePayment } from "../hooks";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -120,6 +120,11 @@ export function PurchaseWorkspacePage() {
                       Record Payment
                     </Button>
                   )}
+                  <Link to="/purchases/$purchaseId/edit" params={{ purchaseId: purchase.id }}>
+                    <Button variant="outline" className="shadow-sm">
+                      <Pencil className="mr-2 h-4 w-4" /> Edit PO
+                    </Button>
+                  </Link>
                   <Button variant="ghost" size="icon" className="border shadow-sm">
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>

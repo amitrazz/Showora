@@ -12,6 +12,8 @@ import {
   BarChart3, LineChart, PieChart, Users, Package, 
   ShoppingBag, Wallet, FileText, Download, Calendar, MapPin 
 } from "lucide-react";
+import { reportService } from "../services";
+import { toast } from "sonner";
 
 type ReportTab = 'overview' | 'sales' | 'inventory' | 'customers' | 'purchases' | 'expenses' | 'finance' | 'taxes';
 
@@ -28,6 +30,34 @@ const navItems: { id: ReportTab, label: string, icon: React.ReactNode }[] = [
 
 export function ReportsDashboardPage() {
   const [activeTab, setActiveTab] = useState<ReportTab>('overview');
+  const [isExporting, setIsExporting] = useState(false);
+  const [selectedReportToExport, setSelectedReportToExport] = useState<string>('');
+
+  const handleExportSelectedReport = async (reportName: string) => {
+    if (!reportName) return;
+    try {
+      setIsExporting(true);
+      const toastId = toast.loading('Exporting report data...');
+      const blob = await reportService.exportReport(reportName);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `report_${reportName}_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.dismiss(toastId);
+      toast.success('Report exported successfully');
+    } catch (error: any) {
+      toast.error('Failed to export report', {
+        description: error.message || 'An error occurred during export.',
+      });
+    } finally {
+      setIsExporting(false);
+      setSelectedReportToExport('');
+    }
+  };
 
   const renderActiveView = () => {
     switch (activeTab) {
@@ -73,14 +103,39 @@ export function ReportsDashboardPage() {
             <MapPin className="mr-2 h-4 w-4" /> All Branches
           </Button>
           <div className="w-px h-6 bg-border mx-2 hidden sm:block" />
+          
+          <select
+            value={selectedReportToExport}
+            onChange={(e) => {
+              const val = e.target.value;
+              setSelectedReportToExport(val);
+              if (val) handleExportSelectedReport(val);
+            }}
+            disabled={isExporting}
+            className="flex h-9 items-center justify-between rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 w-[150px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          >
+            <option value="">Export CSV...</option>
+            <option value="kpis">KPIs Summary</option>
+            <option value="revenue-trend">Revenue Trend</option>
+            <option value="sales-by-model">Sales by Model</option>
+            <option value="inventory-distribution">Inventory Distribution</option>
+            <option value="expense-categories">Expense Categories</option>
+            <option value="sales-executives">Sales Executives</option>
+            <option value="inventory-health">Inventory Health</option>
+            <option value="insights">Actionable Insights</option>
+            <option value="customer-acquisition">Customer Acquisition</option>
+            <option value="supplier-performance">Supplier Performance</option>
+            <option value="tax-register">GST & Taxes Register</option>
+          </select>
+
           <Button className="shadow-sm whitespace-nowrap bg-indigo-600 hover:bg-indigo-700">
             <Download className="mr-2 h-4 w-4" /> Export PDF
           </Button>
         </div>
       </div>
-
-      {/* Split-pane Workspace */}
-      <div className="flex flex-1 overflow-hidden">
+ 
+       {/* Split-pane Workspace */}
+       <div className="flex flex-1 overflow-hidden">
         
         {/* Reports Left Navigation */}
         <div className="w-64 border-r bg-muted/10 overflow-y-auto hidden md:block shrink-0">

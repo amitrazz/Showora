@@ -2,13 +2,13 @@ import { useInvoices, useInvoiceMetrics } from "../hooks";
 import { DataTable } from "@/components/common/DataTable";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatsCard } from "@/components/common/StatsCard";
-import { formatCurrency } from "@/utils/formatters";
+import { formatPaise as formatCurrency } from "@/utils/formatters";
 import { ColumnDef } from "@tanstack/react-table";
 import { InvoiceRecord } from "../types";
 import { format } from "date-fns";
 import {
-  Plus, Download, Printer, MoreHorizontal,
-  Receipt, Wallet, CalendarX, FileSpreadsheet
+  Plus, Download, Printer,
+  Receipt, Wallet, CalendarX, FileSpreadsheet, Eye, Pencil
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +18,7 @@ import { EmptyState } from "@/components/common/EmptyState";
 const invoiceColumns: ColumnDef<InvoiceRecord>[] = [
   {
     accessorKey: "invoiceNumber",
-    header: "Invoice #",
+    header: "Invoice Number",
     cell: ({ row }) => (
       <Link
         to="/invoices/$invoiceId"
@@ -32,27 +32,12 @@ const invoiceColumns: ColumnDef<InvoiceRecord>[] = [
   {
     accessorKey: "customerName",
     header: "Customer",
-    cell: ({ row }) => (
-      <div className="flex flex-col">
-        <span className="text-sm font-medium">{row.original.customerName}</span>
-        <span className="text-xs text-muted-foreground">{row.original.customerPhone}</span>
-      </div>
-    ),
+    cell: ({ row }) => <span className="text-sm font-medium">{row.original.customerName}</span>,
   },
   {
     accessorKey: "invoiceDate",
-    header: "Date",
+    header: "Invoice Date",
     cell: ({ row }) => <span className="text-sm">{format(new Date(row.original.invoiceDate), 'dd MMM yyyy')}</span>,
-  },
-  {
-    id: "vehicle",
-    header: "Vehicle",
-    cell: ({ row }) => <span className="text-sm">{row.original.vehicleMake} {row.original.vehicleModel}</span>,
-  },
-  {
-    accessorKey: "grandTotal",
-    header: "Amount",
-    cell: ({ row }) => <span className="text-sm font-medium font-mono">{formatCurrency(row.original.grandTotal)}</span>,
   },
   {
     accessorKey: "status",
@@ -60,14 +45,11 @@ const invoiceColumns: ColumnDef<InvoiceRecord>[] = [
     cell: ({ row }) => {
       const status = row.original.status;
       const variants: Record<string, string> = {
-        'Draft': "bg-muted text-muted-foreground",
-        'Generated': "bg-blue-500/10 text-blue-500",
-        'Sent': "bg-purple-500/10 text-purple-500",
         'Paid': "bg-emerald-500/10 text-emerald-500",
-        'Partially Paid': "bg-amber-500/10 text-amber-500",
-        'Overdue': "bg-destructive/10 text-destructive",
-        'Cancelled': "bg-slate-500/10 text-slate-500",
-        'Refunded': "bg-orange-500/10 text-orange-500",
+        'Unpaid': "bg-destructive/10 text-destructive",
+        'Partial': "bg-blue-500/10 text-blue-500",
+        'Draft': "bg-muted text-muted-foreground",
+        'Void': "bg-muted text-muted-foreground line-through",
       };
       return (
         <Badge variant="outline" className={`border-transparent whitespace-nowrap ${variants[status] || "bg-muted"}`}>
@@ -77,23 +59,37 @@ const invoiceColumns: ColumnDef<InvoiceRecord>[] = [
     },
   },
   {
+    accessorKey: "grandTotal",
+    header: "Invoice Total",
+    cell: ({ row }) => <span className="text-sm font-medium">{formatCurrency(row.original.grandTotal)}</span>,
+  },
+  {
     accessorKey: "outstandingAmount",
-    header: "Outstanding",
+    header: "Balance Due",
     cell: ({ row }) => {
-      const amount = row.original.outstandingAmount;
+      const due = row.original.outstandingAmount;
       return (
-        <span className={`text-sm font-medium font-mono ${amount > 0 ? "text-destructive" : "text-emerald-500"}`}>
-          {amount > 0 ? formatCurrency(amount) : "Settled"}
+        <span className={`text-sm font-medium ${due > 0 ? "text-destructive" : "text-emerald-500"}`}>
+          {due > 0 ? formatCurrency(due) : "Paid"}
         </span>
       );
     },
   },
   {
     id: "actions",
-    cell: () => (
-      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-        <MoreHorizontal className="h-4 w-4" />
-      </Button>
+    cell: ({ row }) => (
+      <div className="flex items-center justify-end gap-1">
+        <Link to="/invoices/$invoiceId" params={{ invoiceId: row.original.id }}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" title="View Invoice">
+            <Eye className="h-4 w-4" />
+          </Button>
+        </Link>
+        <Link to="/invoices/$invoiceId/edit" params={{ invoiceId: row.original.id }}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" title="Edit Invoice">
+            <Pencil className="h-4 w-4" />
+          </Button>
+        </Link>
+      </div>
     ),
   },
 ];
