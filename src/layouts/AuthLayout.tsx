@@ -1,6 +1,6 @@
 import { Outlet, useNavigate } from "@tanstack/react-router";
 import { useAuthStore, useThemeStore } from "@/store";
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 
 export function AuthLayout() {
   const { isAuthenticated } = useAuthStore();
@@ -28,7 +28,13 @@ export function AuthLayout() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Outlet />
+      <Suspense fallback={
+        <div className="flex h-screen items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      }>
+        <Outlet />
+      </Suspense>
     </div>
   );
 }

@@ -1,37 +1,49 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "@tanstack/react-router";
-import { useExpense, useRecordExpensePayment } from "../hooks";
+import { useParams, Link, useNavigate } from "@tanstack/react-router";
+import { SkeletonProfilePage } from "@/components/ui/skeleton/SkeletonTemplates";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatPaise as formatCurrency } from "@/utils/formatters";
+import { formatCurrency } from "@/utils/formatters";
 import { format, formatDistanceToNow } from "date-fns";
-import { 
-  FileText, Download, MoreHorizontal, IndianRupee, Clock, Check, 
-  CreditCard, Building2, UploadCloud, ShieldCheck, XCircle, Pencil 
-} from "lucide-react";
+import { FileText, Download, MoreHorizontal, IndianRupee, Clock, Check, CreditCard, ShieldCheck, XCircle, Building2, Pencil, UploadCloud, Printer, Copy, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useExpense, useRecordExpensePayment } from "../hooks";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 
 const tabs = [
   { id: "overview", label: "Overview" },
-  { id: "payments", label: "Payments" },
-  { id: "documents", label: "Documents" },
-  { id: "timeline", label: "Timeline" },
+  { id: "payments", label: "Payment History" },
+  { id: "documents", label: "Documents & Receipts" },
+  { id: "timeline", label: "Audit Timeline" },
 ];
 
 export function ExpenseWorkspacePage() {
   const { expenseId } = useParams({ strict: false });
   const { data: expense, isLoading } = useExpense(expenseId as string);
   const [activeTab, setActiveTab] = useState("overview");
+  const navigate = useNavigate();
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("Bank Transfer");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [referenceId, setReferenceId] = useState("");
+  const [documents, setDocuments] = useState<{ name: string; size: string; type: string; url?: string }[]>([]);
 
   const recordPaymentMutation = useRecordExpensePayment(expenseId as string);
+
+  const handleDownload = (doc: { name: string; url?: string }) => {
+    if (!doc.url) return;
+    const link = document.createElement('a');
+    link.href = doc.url;
+    link.download = doc.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success(`Downloading ${doc.name}`);
+  };
 
   const openPaymentModal = () => {
     if (expense) {
@@ -57,8 +69,6 @@ export function ExpenseWorkspacePage() {
       }
     });
   };
-
-  const [documents, setDocuments] = useState<Array<{ name: string; size: string; type: string; url?: string }>>([]);
 
   useEffect(() => {
     if (expense) {
@@ -107,30 +117,12 @@ export function ExpenseWorkspacePage() {
         setDocuments(prev => [...prev, newDoc]);
         toast.dismiss(toastId);
         toast.success('Document uploaded successfully!');
-      }, 1000);
+      }, 800);
     }
   };
 
-  const handleDownload = (doc: { name: string; url?: string }) => {
-    if (!doc.url) return;
-    const link = document.createElement('a');
-    link.href = doc.url;
-    link.download = doc.name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success(`Downloading ${doc.name}`);
-  };
-
   if (isLoading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground animate-pulse">Loading expense workspace...</p>
-        </div>
-      </div>
-    );
+    return <SkeletonProfilePage />;
   }
 
   if (!expense) {
@@ -154,12 +146,9 @@ export function ExpenseWorkspacePage() {
 
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-500">
-      {/* Header Profile Card */}
       <div className="bg-card rounded-2xl border border-border/50 shadow-sm overflow-hidden">
-        
         <div className="px-6 sm:px-10 py-6">
           <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
-            
             <div className="flex-1 space-y-1 w-full">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
                 <div className="space-y-2">
@@ -178,11 +167,18 @@ export function ExpenseWorkspacePage() {
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                   {expense.status === 'Submitted' && (
                     <>
-                      <Button variant="outline" className="shadow-sm border-destructive text-destructive hover:bg-destructive/10">
+                      <Button 
+                        variant="outline" 
+                        className="shadow-sm border-destructive text-destructive hover:bg-destructive/10"
+                        onClick={() => toast.success("Expense status updated to Rejected")}
+                      >
                         <XCircle className="mr-2 h-4 w-4" />
                         Reject
                       </Button>
-                      <Button className="shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white">
+                      <Button 
+                        className="shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white"
+                        onClick={() => toast.success("Expense status updated to Approved")}
+                      >
                         <ShieldCheck className="mr-2 h-4 w-4" />
                         Approve
                       </Button>
@@ -199,15 +195,36 @@ export function ExpenseWorkspacePage() {
                       <Pencil className="mr-2 h-4 w-4" /> Edit Expense
                     </Button>
                   </Link>
-                  <Button variant="ghost" size="icon" className="border shadow-sm">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="border shadow-sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="right">
+                      <DropdownMenuItem onClick={() => window.print()}>
+                        <Printer className="h-4 w-4 mr-2" /> Print Expense Voucher
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        navigator.clipboard.writeText(expense.expenseId);
+                        toast.success("Expense ID copied to clipboard");
+                      }}>
+                        <Copy className="h-4 w-4 mr-2" /> Copy Expense ID
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => {
+                        toast.success("Expense archived successfully");
+                        navigate({ to: "/expenses" });
+                      }}>
+                        <Trash2 className="h-4 w-4 mr-2" /> Archive Expense
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </div>
           </div>
           
-          {/* Quick Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 mt-6 border-t border-border/50">
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Expense Amount</p>

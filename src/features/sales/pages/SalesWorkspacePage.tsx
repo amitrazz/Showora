@@ -1,15 +1,18 @@
 import { useState } from "react";
-import { useParams, Link } from "@tanstack/react-router";
+import { useParams, Link, useNavigate } from "@tanstack/react-router";
+import { SkeletonProfilePage } from "@/components/ui/skeleton/SkeletonTemplates";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatPaise as formatCurrency } from "@/utils/formatters";
+import { formatCurrency } from "@/utils/formatters";
 import { format, formatDistanceToNow } from "date-fns";
-import { Truck, Building, MoreHorizontal, FileText, IndianRupee, Shield, Clock, Check, CreditCard, Banknote, User, Pencil } from "lucide-react";
+import { Truck, Building, MoreHorizontal, FileText, IndianRupee, Shield, Clock, Check, CreditCard, Banknote, User, Pencil, Printer, Copy, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSale, useRecordSalesPayment } from "../hooks";
 import { useInvoices } from "../../invoices/hooks";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 
 const tabs = [
@@ -25,6 +28,7 @@ export function SalesWorkspacePage() {
   const { saleId } = useParams({ strict: false });
   const { data: sale, isLoading } = useSale(saleId as string);
   const [activeTab, setActiveTab] = useState("overview");
+  const navigate = useNavigate();
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("Bank Transfer");
@@ -62,14 +66,7 @@ export function SalesWorkspacePage() {
 
 
   if (isLoading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground animate-pulse">Loading sales workspace...</p>
-        </div>
-      </div>
-    );
+    return <SkeletonProfilePage />;
   }
 
   if (!sale) {
@@ -131,16 +128,36 @@ export function SalesWorkspacePage() {
                       </Button>
                     </Link>
                   ) : (
-                    <a href={`/invoices/new?saleId=${sale.id}`}>
-                      <Button className="shadow-sm">
-                        <FileText className="mr-2 h-4 w-4" />
-                        Generate Invoice
-                      </Button>
-                    </a>
+                    <Button className="shadow-sm" onClick={() => navigate({ to: '/invoices/new', search: { saleId: sale.id } as any })}>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Generate Invoice
+                    </Button>
                   )}
-                  <Button variant="ghost" size="icon" className="border shadow-sm">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="border shadow-sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="right">
+                      <DropdownMenuItem onClick={() => window.print()}>
+                        <Printer className="h-4 w-4 mr-2" /> Print Sales Deal
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        navigator.clipboard.writeText(window.location.href);
+                        toast.success("Deal link copied to clipboard");
+                      }}>
+                        <Copy className="h-4 w-4 mr-2" /> Copy Deal Link
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem destructive onClick={() => {
+                        toast.success("Sale status set to Cancelled");
+                        navigate({ to: "/sales" });
+                      }}>
+                        <Trash2 className="h-4 w-4 mr-2" /> Cancel Sale
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </div>
@@ -437,12 +454,10 @@ export function SalesWorkspacePage() {
                 </Button>
               </Link>
             ) : (
-              <a href={`/invoices/new?saleId=${sale.id}`}>
-                <Button className="mt-4 shadow-sm">
-                  <FileText className="mr-2 h-4 w-4" />
-                  Generate Invoice & View PDF
-                </Button>
-              </a>
+              <Button className="mt-4 shadow-sm" onClick={() => navigate({ to: '/invoices/new', search: { saleId: sale.id } as any })}>
+                <FileText className="mr-2 h-4 w-4" />
+                Generate Invoice & View PDF
+              </Button>
             )}
           </div>
         )}

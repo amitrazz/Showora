@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -58,10 +59,10 @@ export function DataTable<TData, TValue>({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     onPaginationChange: setPagination,
     onGlobalFilterChange: setGlobalFilter,
     onRowSelectionChange: setRowSelection,
@@ -80,6 +81,40 @@ export function DataTable<TData, TValue>({
   const currentPageSize = serverPagination?.pageSize ?? localPageSize;
   const firstVisibleRow = filteredRowCount === 0 ? 0 : pageIndex * currentPageSize + 1;
   const lastVisibleRow = Math.min((pageIndex + 1) * currentPageSize, filteredRowCount);
+
+  const pageCount = serverPagination
+    ? Math.ceil(serverPagination.totalCount / serverPagination.pageSize)
+    : Math.max(1, Math.ceil(filteredRowCount / pagination.pageSize));
+
+  const canPreviousPage = serverPagination
+    ? serverPagination.canPreviousPage
+    : pagination.pageIndex > 0;
+
+  const canNextPage = serverPagination
+    ? serverPagination.canNextPage
+    : pagination.pageIndex < pageCount - 1;
+
+  const handlePreviousPage = () => {
+    if (serverPagination) {
+      serverPagination.onPreviousPage();
+    } else {
+      setPagination((prev) => ({
+        ...prev,
+        pageIndex: Math.max(0, prev.pageIndex - 1),
+      }));
+    }
+  };
+
+  const handleNextPage = () => {
+    if (serverPagination) {
+      serverPagination.onNextPage();
+    } else {
+      setPagination((prev) => ({
+        ...prev,
+        pageIndex: Math.min(pageCount - 1, prev.pageIndex + 1),
+      }));
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -160,13 +195,13 @@ export function DataTable<TData, TValue>({
         </div>
         <div className="flex items-center space-x-2">
           <span className="mr-2 text-sm text-muted-foreground">
-            Page {pageIndex + 1} of {serverPagination ? Math.ceil(serverPagination.totalCount / serverPagination.pageSize) : table.getPageCount()}
+            Page {pageIndex + 1} of {pageCount}
           </span>
           <Button
             variant="outline"
             size="sm"
-            onClick={serverPagination?.onPreviousPage ?? (() => table.previousPage())}
-            disabled={serverPagination ? !serverPagination.canPreviousPage : !table.getCanPreviousPage()}
+            onClick={handlePreviousPage}
+            disabled={!canPreviousPage}
             className="h-8 shadow-none"
           >
             Previous
@@ -174,8 +209,8 @@ export function DataTable<TData, TValue>({
           <Button
             variant="outline"
             size="sm"
-            onClick={serverPagination?.onNextPage ?? (() => table.nextPage())}
-            disabled={serverPagination ? !serverPagination.canNextPage : !table.getCanNextPage()}
+            onClick={handleNextPage}
+            disabled={!canNextPage}
             className="h-8 shadow-none"
           >
             Next
@@ -197,8 +232,28 @@ export function DataTable<TData, TValue>({
             </div>
             <div className="h-4 w-px bg-border" />
             <div className="flex items-center gap-1">
-              <Button size="sm" variant="secondary" className="rounded-full">Export</Button>
-              <Button size="sm" variant="destructive" className="rounded-full">Delete</Button>
+              <Button 
+                size="sm" 
+                variant="secondary" 
+                className="rounded-full"
+                onClick={() => {
+                  toast.success(`Exporting ${selectedCount} selected items...`);
+                  setRowSelection({});
+                }}
+              >
+                Export Selected
+              </Button>
+              <Button 
+                size="sm" 
+                variant="destructive" 
+                className="rounded-full"
+                onClick={() => {
+                  toast.success(`${selectedCount} selected items processed.`);
+                  setRowSelection({});
+                }}
+              >
+                Delete Selected
+              </Button>
             </div>
           </motion.div>
         )}

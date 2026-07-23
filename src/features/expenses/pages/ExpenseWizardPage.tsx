@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { EXPENSE_CATEGORIES, RECURRING_FREQUENCIES, EXPENSE_PAYMENT_METHODS } from "@/constants/staticDropdowns";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createExpenseWizardSchema, CreateExpenseWizardForm } from "../schemas";
 import { useCreateExpense, useExpense, useUpdateExpense } from "../hooks";
@@ -170,13 +171,9 @@ export function ExpenseWizardPage() {
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Category *</label>
                           <select {...register("info.category")} className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                            <option value="Utilities">Utilities</option>
-                            <option value="Staff Salary">Staff Salary</option>
-                            <option value="Rent">Rent</option>
-                            <option value="Marketing">Marketing & Advertising</option>
-                            <option value="Office Supplies">Office Supplies</option>
-                            <option value="Vehicle Maintenance">Vehicle Maintenance</option>
-                            <option value="Miscellaneous">Miscellaneous</option>
+                            {EXPENSE_CATEGORIES.map((c) => (
+                              <option key={c.value} value={c.value}>{c.label}</option>
+                            ))}
                           </select>
                         </div>
                         <div className="space-y-2">
@@ -201,9 +198,9 @@ export function ExpenseWizardPage() {
                               <div className="mt-4 pl-6 border-l-2 border-primary">
                                  <label className="text-sm font-medium mb-2 block">Frequency</label>
                                  <select {...register("info.recurringFrequency")} className="flex h-10 w-[200px] rounded-md border border-input bg-muted/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                                   <option value="Monthly">Monthly</option>
-                                   <option value="Quarterly">Quarterly</option>
-                                   <option value="Yearly">Yearly</option>
+                                   {RECURRING_FREQUENCIES.map((r) => (
+                                     <option key={r.value} value={r.value}>{r.label}</option>
+                                   ))}
                                  </select>
                               </div>
                            )}
@@ -256,10 +253,9 @@ export function ExpenseWizardPage() {
                             <div className="space-y-2">
                               <label className="text-sm font-medium">Payment Mode</label>
                               <select {...register("payment.method")} className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                                <option value="Bank Transfer">Bank Transfer (NEFT/RTGS)</option>
-                                <option value="UPI">UPI</option>
-                                <option value="Corporate Card">Corporate Credit Card</option>
-                                <option value="Cash">Cash</option>
+                                {EXPENSE_PAYMENT_METHODS.map((m) => (
+                                  <option key={m.value} value={m.value}>{m.label}</option>
+                                ))}
                               </select>
                             </div>
                             <div className="space-y-2">

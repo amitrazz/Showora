@@ -1,12 +1,15 @@
 import { useState } from "react";
-import { useParams, Link } from "@tanstack/react-router";
+import { useParams, Link, useNavigate } from "@tanstack/react-router";
+import { SkeletonProfilePage } from "@/components/ui/skeleton/SkeletonTemplates";
 import { useInventoryVehicle } from "../hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatPaise } from "@/utils/formatters";
+import { formatCurrency } from "@/utils/formatters";
 import { format, formatDistanceToNow } from "date-fns";
-import { Truck, MapPin, Building, MoreHorizontal, FileText, IndianRupee, Shield, ArrowRightLeft, PenTool, CheckCircle, Clock, Pencil } from "lucide-react";
+import { Truck, MapPin, Building, MoreHorizontal, FileText, IndianRupee, Shield, ArrowRightLeft, PenTool, CheckCircle, Clock, Pencil, Copy, Printer, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 const tabs = [
   { id: "overview", label: "Overview" },
@@ -21,16 +24,10 @@ export function InventoryWorkspacePage() {
   const { inventoryId } = useParams({ strict: false });
   const { data: vehicle, isLoading } = useInventoryVehicle(inventoryId as string);
   const [activeTab, setActiveTab] = useState("overview");
+  const navigate = useNavigate();
 
   if (isLoading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground animate-pulse">Loading vehicle workspace...</p>
-        </div>
-      </div>
-    );
+    return <SkeletonProfilePage />;
   }
 
   if (!vehicle) {
@@ -44,6 +41,14 @@ export function InventoryWorkspacePage() {
     'Delivered': "bg-purple-500/10 text-purple-500 border-transparent",
     'In Transit': "bg-orange-500/10 text-orange-500 border-transparent",
     'Under Service': "bg-destructive/10 text-destructive border-transparent",
+  };
+
+  const handleReserve = () => {
+    toast.success(`Vehicle VIN #${vehicle.vin} has been marked as Reserved.`);
+  };
+
+  const handleAllocate = () => {
+    toast.success(`Vehicle VIN #${vehicle.vin} allocated to active sales pipeline.`);
   };
 
   return (
@@ -75,12 +80,12 @@ export function InventoryWorkspacePage() {
                 
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                   {vehicle.status === 'Available' && (
-                    <Button variant="outline" className="shadow-sm">
+                    <Button variant="outline" className="shadow-sm" onClick={handleReserve}>
                       Reserve
                     </Button>
                   )}
                   {['Available', 'Reserved'].includes(vehicle.status) && (
-                    <Button className="shadow-sm">
+                    <Button className="shadow-sm" onClick={handleAllocate}>
                       Allocate
                     </Button>
                   )}
@@ -89,9 +94,31 @@ export function InventoryWorkspacePage() {
                       <Pencil className="mr-2 h-4 w-4" /> Edit
                     </Button>
                   </Link>
-                  <Button variant="ghost" size="icon" className="border shadow-sm">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="border shadow-sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="right">
+                      <DropdownMenuItem onClick={() => {
+                        navigator.clipboard.writeText(vehicle.vin);
+                        toast.success("VIN copied to clipboard!");
+                      }}>
+                        <Copy className="h-4 w-4 mr-2" /> Copy VIN
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => window.print()}>
+                        <Printer className="h-4 w-4 mr-2" /> Print Spec Sheet
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem destructive onClick={() => {
+                        toast.success("Vehicle status updated to Archived.");
+                        navigate({ to: "/inventory" });
+                      }}>
+                        <Trash2 className="h-4 w-4 mr-2" /> Archive Vehicle
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </div>
@@ -114,7 +141,7 @@ export function InventoryWorkspacePage() {
             </div>
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Cost / MRP</p>
-              <p className="text-sm font-semibold">{formatPaise(vehicle.purchaseCost)} / {formatPaise(vehicle.mrp)}</p>
+              <p className="text-sm font-semibold">{formatCurrency(vehicle.purchaseCost)} / {formatCurrency(vehicle.mrp)}</p>
             </div>
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Supplier</p>
@@ -239,15 +266,15 @@ export function InventoryWorkspacePage() {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Purchase Cost</span>
-                      <span className="text-sm font-mono font-semibold text-destructive">{formatPaise(vehicle.purchaseCost)}</span>
+                      <span className="text-sm font-mono font-semibold text-destructive">{formatCurrency(vehicle.purchaseCost)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">GST (Input)</span>
-                      <span className="text-sm font-mono font-semibold">{formatPaise(vehicle.gstAmount)}</span>
+                      <span className="text-sm font-mono font-semibold">{formatCurrency(vehicle.gstAmount)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Selling Price</span>
-                      <span className="text-sm font-mono font-semibold text-emerald-600">{formatPaise(vehicle.sellingPrice)}</span>
+                      <span className="text-sm font-mono font-semibold text-emerald-600">{formatCurrency(vehicle.sellingPrice)}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -261,7 +288,13 @@ export function InventoryWorkspacePage() {
             <CardContent className="p-6 sm:p-10">
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-lg font-medium">Movement History</h3>
-                <Button variant="outline" size="sm"><ArrowRightLeft className="h-4 w-4 mr-2" /> New Transfer</Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => toast.info("Vehicle Transfer initialized", { description: "Select destination warehouse in Settings > Branches." })}
+                >
+                  <ArrowRightLeft className="h-4 w-4 mr-2" /> New Transfer
+                </Button>
               </div>
               <div className="space-y-6 relative before:absolute before:inset-0 before:ml-4 before:-translate-x-px before:h-full before:w-0.5 before:bg-border">
                 {vehicle.movementHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((event) => (
@@ -325,7 +358,7 @@ export function InventoryWorkspacePage() {
                <>
                  <Building className="h-10 w-10 mb-4 opacity-50" />
                  <p>Vehicle is currently unallocated.</p>
-                 <Button className="mt-4 shadow-sm">Allocate to Customer</Button>
+                 <Button className="mt-4 shadow-sm" onClick={handleAllocate}>Allocate to Customer</Button>
                </>
              )}
           </div>

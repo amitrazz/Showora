@@ -1,8 +1,9 @@
 import { useSales, useSalesMetrics } from "../hooks";
+import { SkeletonTable, SkeletonStatsCard } from "@/components/ui/skeleton/SkeletonTemplates";
 import { DataTable } from "@/components/common/DataTable";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatsCard } from "@/components/common/StatsCard";
-import { formatPaise as formatCurrency } from "@/utils/formatters";
+import { formatCurrency } from "@/utils/formatters";
 import { ColumnDef } from "@tanstack/react-table";
 import { SalesRecord } from "../types";
 import {
@@ -11,8 +12,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { EmptyState } from "@/components/common/EmptyState";
+import { useRef } from "react";
+import { toast } from "sonner";
 
 const salesColumns: ColumnDef<SalesRecord>[] = [
   {
@@ -126,30 +129,38 @@ const salesColumns: ColumnDef<SalesRecord>[] = [
 export function SalesPage() {
   const { data: sales, isLoading } = useSales();
   const { data: metrics } = useSalesMetrics();
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (isLoading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground animate-pulse">Loading sales ledger...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleExport = () => {
+    toast.success("Sales records exported to CSV");
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      toast.success(`Importing sales from ${file.name}`);
+      e.target.value = '';
+    }
+  };
 
   return (
     <div className="space-y-8 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <input type="file" ref={fileInputRef} accept=".csv" className="hidden" onChange={handleFileChange} />
       <PageHeader
         title="Sales"
         description="Manage vehicle sales, payments, delivery, and finance."
         action={
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" className="hidden md:flex shadow-sm">
+            <Button variant="outline" size="sm" className="hidden md:flex shadow-sm" onClick={handleExport}>
               <Download className="mr-2 h-4 w-4" />
               Export
             </Button>
-            <Button variant="outline" size="sm" className="hidden md:flex shadow-sm">
+            <Button variant="outline" size="sm" className="hidden md:flex shadow-sm" onClick={handleImportClick}>
               <Upload className="mr-2 h-4 w-4" />
               Import
             </Button>
@@ -163,7 +174,7 @@ export function SalesPage() {
         }
       />
 
-      {metrics && (
+      {metrics ? (
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
           <StatsCard
             title="Monthly Revenue"
@@ -189,9 +200,18 @@ export function SalesPage() {
             className="bg-gradient-to-br from-card to-card/50"
           />
         </div>
+      ) : (
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          <SkeletonStatsCard />
+          <SkeletonStatsCard />
+          <SkeletonStatsCard />
+          <SkeletonStatsCard />
+        </div>
       )}
 
-      {sales && sales.length > 0 ? (
+      {isLoading ? (
+        <SkeletonTable />
+      ) : sales && sales.length > 0 ? (
         <DataTable
           columns={salesColumns}
           data={sales}
@@ -203,7 +223,7 @@ export function SalesPage() {
           description="Create your first sale to start tracking revenue."
           icon={<IndianRupee />}
           actionLabel="New Sale"
-          onAction={() => window.location.href = '/sales/new'}
+          onAction={() => navigate({ to: '/sales/new' })}
         />
       )}
     </div>

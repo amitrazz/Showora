@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
+import { SALES_PAYMENT_METHODS, FINANCE_PARTNERS, SALES_EXECUTIVES } from "@/constants/staticDropdowns";
+import { useSalesExecutives } from "@/features/users/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createSaleWizardSchema, CreateSaleWizardForm } from "../schemas";
 import { useCreateSale, useSale, useUpdateSale } from "../hooks";
@@ -13,6 +15,7 @@ import { useNavigate, Link, useParams } from "@tanstack/react-router";
 import { formatCurrency } from "@/utils/formatters";
 import { useCustomers, useCustomer } from "../../customers/hooks";
 import { useInventory } from "../../inventory/hooks";
+import { InventoryVehicle } from "@/features/inventory/types";
 
 const steps = [
   { id: "customer", title: "Customer" },
@@ -31,8 +34,30 @@ export function SalesWizardPage() {
   const { data: sale, isLoading: isSaleLoading } = useSale(saleId as string);
   const createMutation = useCreateSale();
   const updateMutation = useUpdateSale();
-  const { data: inventory } = useInventory();
-  const inventoryList = (inventory || []).filter(v => v.status === 'Available' || (sale && v.id === sale.inventoryId));
+  const { data: apiExecutives } = useSalesExecutives();
+  const { data: inventoryResult } = useInventory({ limit: 100 });
+  const inventoryArray: InventoryVehicle[] = Array.isArray(inventoryResult)
+    ? inventoryResult
+    : (inventoryResult?.data ?? []);
+
+  const isAvailable = (status?: string) => {
+    if (!status) return false;
+    const s = String(status).toUpperCase();
+    return s === "AVAILABLE";
+  };
+
+  const inventoryList = inventoryArray.filter((v) => {
+    if (sale && v.id === sale.inventoryId) return true;
+    return isAvailable(v.status);
+  });
+
+  const executiveOptions = (apiExecutives && apiExecutives.length > 0)
+    ? apiExecutives.map(u => {
+        const name = [u.firstName, u.lastName].filter(Boolean).join(" ");
+        const val = name || u.email;
+        return { value: val, label: name ? `${name} (${u.email})` : u.email };
+      })
+    : SALES_EXECUTIVES;
 
   const isEditMode = !!saleId;
 
@@ -40,6 +65,7 @@ export function SalesWizardPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [releaseReservation, setReleaseReservation] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -94,25 +120,25 @@ export function SalesWizardPage() {
         reserveVehicle: true,
       },
       pricing: {
-        basePrice: (sale.basePrice ?? 0) / 100,
-        accessoriesPrice: (sale.accessoriesPrice ?? 0) / 100,
-        registrationTax: (sale.registrationTax ?? 0) / 100,
-        roadTax: (sale.roadTax ?? 0) / 100,
-        insurance: (sale.insurance ?? 0) / 100,
-        gstAmount: (sale.gstAmount ?? 0) / 100,
-        discount: (sale.discount ?? 0) / 100,
-        exchangeBonus: (sale.exchangeBonus ?? 0) / 100,
+        basePrice: sale.basePrice ?? 0,
+        accessoriesPrice: sale.accessoriesPrice ?? 0,
+        registrationTax: sale.registrationTax ?? 0,
+        roadTax: sale.roadTax ?? 0,
+        insurance: sale.insurance ?? 0,
+        gstAmount: sale.gstAmount ?? 0,
+        discount: sale.discount ?? 0,
+        exchangeBonus: sale.exchangeBonus ?? 0,
       },
       payment: {
         method: sale.payments?.[0]?.method ?? "Bank Transfer",
-        initialPaymentAmount: (sale.payments?.[0]?.amount ?? 0) / 100,
+        initialPaymentAmount: sale.payments?.[0]?.amount ?? 0,
         referenceId: sale.payments?.[0]?.referenceId ?? "",
       },
       finance: {
         required: sale.finance?.required ?? false,
         partner: sale.finance?.partner ?? "",
-        loanAmount: (sale.finance?.loanAmount ?? 0) / 100,
-        downPayment: (sale.finance?.downPayment ?? 0) / 100,
+        loanAmount: sale.finance?.loanAmount ?? 0,
+        downPayment: sale.finance?.downPayment ?? 0,
         interestRate: sale.finance?.interestRate ?? 0,
         tenureMonths: sale.finance?.tenureMonths ?? 0,
       },
@@ -126,15 +152,30 @@ export function SalesWizardPage() {
 
   // Live Pricing Calculation
   const pricing = watch("pricing");
-  const grandTotal = (pricing.basePrice || 0) + (pricing.accessoriesPrice || 0) + (pricing.registrationTax || 0) + (pricing.roadTax || 0) + (pricing.insurance || 0) + (pricing.gstAmount || 0) - (pricing.discount || 0) - (pricing.exchangeBonus || 0);
+  const toAmount = (value: unknown) => {
+    const amount = typeof value === "number" ? value : Number(value);
+    return Number.isFinite(amount) ? amount : 0;
+  };
+  const livePricing = {
+    basePrice: toAmount(pricing.basePrice),
+    accessoriesPrice: toAmount(pricing.accessoriesPrice),
+    registrationTax: toAmount(pricing.registrationTax),
+    roadTax: toAmount(pricing.roadTax),
+    insurance: toAmount(pricing.insurance),
+    gstAmount: toAmount(pricing.gstAmount),
+    discount: toAmount(pricing.discount),
+    exchangeBonus: toAmount(pricing.exchangeBonus),
+  };
+  const grandTotal = livePricing.basePrice + livePricing.accessoriesPrice + livePricing.registrationTax + livePricing.roadTax + livePricing.insurance + livePricing.gstAmount - livePricing.discount - livePricing.exchangeBonus;
 
-  const paymentAmount = watch("payment.initialPaymentAmount") || 0;
+  const paymentAmount = toAmount(watch("payment.initialPaymentAmount"));
   const outstanding = Math.max(0, grandTotal - paymentAmount);
 
   const selectedCustomerId = watch("customer.customerId");
   const selectedVehicleId = watch("vehicle.inventoryId");
   const { data: selectedCustomer } = useCustomer(selectedCustomerId);
   const selectedVehicle = inventoryList.find(v => v.id === selectedVehicleId);
+  const canReleaseReservation = isEditMode && selectedVehicle?.status === "Reserved";
   
   const financeRequired = watch("finance.required");
 
@@ -169,11 +210,15 @@ export function SalesWizardPage() {
     setCurrentStep(s => Math.max(s - 1, 0));
   };
 
-  const onSubmit = (data: any) => {
+  const onSubmit = (data: CreateSaleWizardForm) => {
+    const saleData = canReleaseReservation && releaseReservation
+      ? { ...data, vehicle: { ...data.vehicle, reserveVehicle: false } }
+      : data;
+
     if (isEditMode) {
-      updateMutation.mutate({ id: saleId as string, data });
+      updateMutation.mutate({ id: saleId as string, data: saleData });
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(saleData);
     }
   };
 
@@ -354,10 +399,26 @@ export function SalesWizardPage() {
                           </select>
                           {errors.vehicle?.inventoryId && <p className="text-xs text-destructive">{errors.vehicle.inventoryId.message}</p>}
                         </div>
-                        <div className="pt-4 flex items-center gap-2">
-                          <input type="checkbox" id="reserve" {...register("vehicle.reserveVehicle")} className="rounded border-input text-primary focus:ring-primary" />
-                          <label htmlFor="reserve" className="text-sm font-medium">Reserve this vehicle immediately from other executives</label>
-                        </div>
+                        {canReleaseReservation ? (
+                          <div className="pt-4 flex items-start gap-2 border-t border-border/50">
+                            <input
+                              type="checkbox"
+                              id="release-reservation"
+                              checked={releaseReservation}
+                              onChange={(event) => setReleaseReservation(event.target.checked)}
+                              className="mt-0.5 rounded border-input text-primary focus:ring-primary"
+                            />
+                            <label htmlFor="release-reservation" className="text-sm font-medium">
+                              Release this reservation and return the vehicle to available inventory
+                              <span className="block mt-1 text-xs font-normal text-muted-foreground">Use this when the deal is no longer holding this vehicle.</span>
+                            </label>
+                          </div>
+                        ) : (
+                          <div className="pt-4 flex items-center gap-2">
+                            <input type="checkbox" id="reserve" {...register("vehicle.reserveVehicle")} className="rounded border-input text-primary focus:ring-primary" />
+                            <label htmlFor="reserve" className="text-sm font-medium">Reserve this vehicle immediately from other executives</label>
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   )}
@@ -371,28 +432,32 @@ export function SalesWizardPage() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4">
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Ex-Showroom Price (₹) *</label>
-                          <Input type="number" {...register("pricing.basePrice")} className="bg-muted/50 font-mono" />
+                          <Input type="number" {...register("pricing.basePrice", { valueAsNumber: true })} className="bg-muted/50 font-mono" />
                           {errors.pricing?.basePrice && <p className="text-xs text-destructive">{errors.pricing.basePrice.message}</p>}
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Accessories (₹)</label>
-                          <Input type="number" {...register("pricing.accessoriesPrice")} className="bg-muted/50 font-mono" />
+                          <Input type="number" {...register("pricing.accessoriesPrice", { valueAsNumber: true })} className="bg-muted/50 font-mono" />
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium">RTO / Registration (₹)</label>
-                          <Input type="number" {...register("pricing.registrationTax")} className="bg-muted/50 font-mono" />
+                          <Input type="number" {...register("pricing.registrationTax", { valueAsNumber: true })} className="bg-muted/50 font-mono" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Road Tax (₹)</label>
+                          <Input type="number" {...register("pricing.roadTax", { valueAsNumber: true })} className="bg-muted/50 font-mono" />
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Insurance (₹)</label>
-                          <Input type="number" {...register("pricing.insurance")} className="bg-muted/50 font-mono" />
+                          <Input type="number" {...register("pricing.insurance", { valueAsNumber: true })} className="bg-muted/50 font-mono" />
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium">GST Amount (₹) *</label>
-                          <Input type="number" {...register("pricing.gstAmount")} className="bg-muted/50 font-mono" />
+                          <Input type="number" {...register("pricing.gstAmount", { valueAsNumber: true })} className="bg-muted/50 font-mono" />
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-destructive">Discount (₹)</label>
-                          <Input type="number" {...register("pricing.discount")} className="bg-destructive/5 font-mono text-destructive" />
+                          <Input type="number" {...register("pricing.discount", { valueAsNumber: true })} className="bg-destructive/5 font-mono text-destructive" />
                         </div>
                       </div>
                     </motion.div>
@@ -408,11 +473,9 @@ export function SalesWizardPage() {
                         <div className="space-y-2 sm:col-span-2">
                           <label className="text-sm font-medium">Payment Method *</label>
                           <select {...register("payment.method")} className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                            <option value="Bank Transfer">Bank Transfer</option>
-                            <option value="UPI">UPI</option>
-                            <option value="Cash">Cash</option>
-                            <option value="Cheque">Cheque</option>
-                            <option value="Finance">Finance (Loan)</option>
+                            {SALES_PAYMENT_METHODS.map((m) => (
+                              <option key={m.value} value={m.value}>{m.label}</option>
+                            ))}
                           </select>
                         </div>
                         <div className="space-y-2">
@@ -446,10 +509,9 @@ export function SalesWizardPage() {
                           <div className="space-y-2">
                             <label className="text-sm font-medium">Finance Partner</label>
                             <select {...register("finance.partner")} className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                              <option value="HDFC Bank">HDFC Bank</option>
-                              <option value="ICICI Bank">ICICI Bank</option>
-                              <option value="IDFC First">IDFC First</option>
-                              <option value="Bajaj Finance">Bajaj Finance</option>
+                              {FINANCE_PARTNERS.map((f) => (
+                                <option key={f.value} value={f.value}>{f.label}</option>
+                              ))}
                             </select>
                           </div>
                           <div className="space-y-2">
@@ -490,9 +552,9 @@ export function SalesWizardPage() {
                           <label className="text-sm font-medium">Assigned Executive *</label>
                           <select {...register("delivery.executive")} className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             <option value="">Select executive...</option>
-                            <option value="Rajesh Kumar">Rajesh Kumar</option>
-                            <option value="Priya Singh">Priya Singh</option>
-                            <option value="Amit Patel">Amit Patel</option>
+                            {executiveOptions.map((x) => (
+                              <option key={x.value} value={x.value}>{x.label}</option>
+                            ))}
                           </select>
                           {errors.delivery?.executive && <p className="text-xs text-destructive">{errors.delivery.executive.message}</p>}
                         </div>
@@ -558,12 +620,13 @@ export function SalesWizardPage() {
             <CardContent className="p-6">
               <h3 className="font-semibold flex items-center gap-2 mb-6"><IndianRupee className="h-4 w-4 text-primary" /> Live Pricing</h3>
               <div className="space-y-3 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Base Price</span><span className="font-mono">{formatCurrency(watch("pricing.basePrice") || 0)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Accessories</span><span className="font-mono">{formatCurrency(watch("pricing.accessoriesPrice") || 0)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">RTO / Reg</span><span className="font-mono">{formatCurrency(watch("pricing.registrationTax") || 0)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Insurance</span><span className="font-mono">{formatCurrency(watch("pricing.insurance") || 0)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">GST Amount</span><span className="font-mono">{formatCurrency(watch("pricing.gstAmount") || 0)}</span></div>
-                <div className="flex justify-between text-destructive"><span className="text-destructive/80">Discount</span><span className="font-mono">-{formatCurrency(watch("pricing.discount") || 0)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Base Price</span><span className="font-mono">{formatCurrency(livePricing.basePrice)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Accessories</span><span className="font-mono">{formatCurrency(livePricing.accessoriesPrice)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">RTO / Reg</span><span className="font-mono">{formatCurrency(livePricing.registrationTax)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Road Tax</span><span className="font-mono">{formatCurrency(livePricing.roadTax)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Insurance</span><span className="font-mono">{formatCurrency(livePricing.insurance)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">GST Amount</span><span className="font-mono">{formatCurrency(livePricing.gstAmount)}</span></div>
+                <div className="flex justify-between text-destructive"><span className="text-destructive/80">Discount</span><span className="font-mono">-{formatCurrency(livePricing.discount)}</span></div>
                 <div className="border-t border-border/50 pt-3 flex justify-between font-bold text-base mt-2">
                   <span>Grand Total</span>
                   <span className="font-mono">{formatCurrency(grandTotal)}</span>

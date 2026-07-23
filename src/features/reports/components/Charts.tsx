@@ -2,7 +2,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   BarChart, Bar, Legend, PieChart, Pie, Cell 
 } from 'recharts';
-import { formatPaise as formatCurrency } from '@/utils/formatters';
+import { formatCurrency } from '@/utils/formatters';
 
 interface ChartProps {
   data: any[];

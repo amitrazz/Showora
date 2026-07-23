@@ -105,3 +105,17 @@ export interface InventoryMetrics {
   averageInventoryAge: number; // in days
   monthlyStockMovement: number;
 }
+
+export interface InventoryListOptions {
+  search?: string;
+  limit?: number;
+  cursor?: string;
+}
+
+export interface InventoryListResponse {
+  data: InventoryVehicle[];
+  nextCursor?: string;
+  hasMore: boolean;
+  limit: number;
+  totalCount: number;
+}

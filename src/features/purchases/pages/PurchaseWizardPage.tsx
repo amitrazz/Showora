@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
+import { PURCHASE_PAYMENT_TERMS, PURCHASE_PAYMENT_METHODS, PURCHASE_WAREHOUSES, SUPPLIERS } from "@/constants/staticDropdowns";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createPurchaseWizardSchema, CreatePurchaseWizardForm } from "../schemas";
 import { useCreatePurchase, usePurchase, useUpdatePurchase } from "../hooks";
-import { mockSuppliers } from "../data";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -188,8 +188,8 @@ export function PurchaseWizardPage() {
                           <label className="text-sm font-medium">Supplier *</label>
                           <select {...register("supplier.supplierId")} className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             <option value="">Select a supplier...</option>
-                            {mockSuppliers.map(sup => (
-                              <option key={sup.id} value={sup.id}>{sup.name} ({sup.contactPerson})</option>
+                            {SUPPLIERS.map(sup => (
+                              <option key={sup.value} value={sup.value}>{sup.label} ({sup.contactPerson})</option>
                             ))}
                           </select>
                           {errors.supplier?.supplierId && <p className="text-xs text-destructive">{errors.supplier.supplierId.message}</p>}
@@ -303,10 +303,9 @@ export function PurchaseWizardPage() {
                         <div className="space-y-2 sm:col-span-2">
                           <label className="text-sm font-medium">Payment Terms *</label>
                           <select {...register("payment.terms")} className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                            <option value="Net 30">Net 30 Days</option>
-                            <option value="Net 60">Net 60 Days</option>
-                            <option value="Cash on Delivery">Cash on Delivery</option>
-                            <option value="Advance">100% Advance</option>
+                            {PURCHASE_PAYMENT_TERMS.map((t) => (
+                              <option key={t.value} value={t.value}>{t.label}</option>
+                            ))}
                           </select>
                         </div>
                         <div className="space-y-2">
@@ -316,8 +315,9 @@ export function PurchaseWizardPage() {
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Payment Method</label>
                           <select {...register("payment.method")} className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                            <option value="Bank Transfer">Bank Transfer (NEFT/RTGS)</option>
-                            <option value="Cheque">Cheque</option>
+                            {PURCHASE_PAYMENT_METHODS.map((m) => (
+                              <option key={m.value} value={m.value}>{m.label}</option>
+                            ))}
                           </select>
                         </div>
                       </div>
@@ -334,8 +334,9 @@ export function PurchaseWizardPage() {
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Destination Warehouse *</label>
                           <select {...register("delivery.warehouse")} className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                            <option value="Main Warehouse">Main Warehouse (North)</option>
-                            <option value="Showroom Hub">Showroom Hub</option>
+                            {PURCHASE_WAREHOUSES.map((w) => (
+                              <option key={w.value} value={w.value}>{w.label}</option>
+                            ))}
                           </select>
                         </div>
                         <div className="space-y-2">

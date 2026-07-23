@@ -1,17 +1,18 @@
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatsCard } from "@/components/common/StatsCard";
 import { useDashboardMetrics } from "../hooks";
-import { formatPaise as formatCurrency } from "@/utils/formatters";
+import { formatCurrency } from "@/utils/formatters";
 import { IndianRupee, Users, Bike, Receipt, ArrowUpRight, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 export function DashboardPage() {
   const { data, isLoading } = useDashboardMetrics();
+  const navigate = useNavigate();
 
   if (isLoading || !data) {
     return (
@@ -96,7 +97,12 @@ export function DashboardPage() {
               <CardTitle>Revenue Overview</CardTitle>
               <CardDescription>Monthly revenue performance for the current year</CardDescription>
             </div>
-            <Button variant="ghost" size="sm" className="text-muted-foreground hidden sm:flex">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-muted-foreground hidden sm:flex"
+              onClick={() => navigate({ to: "/reports" })}
+            >
               View details <ArrowUpRight className="ml-1 h-4 w-4" />
             </Button>
           </CardHeader>
@@ -153,7 +159,11 @@ export function DashboardPage() {
           <CardContent className="flex-1">
             <div className="space-y-6">
               {data.recentSales.slice(0, 5).map((sale) => (
-                <div key={sale.id} className="flex items-center group cursor-pointer">
+                <div 
+                  key={sale.id} 
+                  className="flex items-center group cursor-pointer"
+                  onClick={() => navigate({ to: "/sales/$saleId", params: { saleId: sale.id } })}
+                >
                   <Avatar className="h-10 w-10 border border-border/50 transition-transform group-hover:scale-105">
                     <AvatarFallback className="bg-primary/5 text-primary">{sale.customerName.slice(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>

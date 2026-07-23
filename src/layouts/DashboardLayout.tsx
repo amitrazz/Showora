@@ -2,9 +2,10 @@ import { Outlet, useNavigate } from "@tanstack/react-router";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { useAuthStore, useSidebarStore, useThemeStore } from "@/store";
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
+import { SkeletonDashboard } from "@/components/ui/skeleton/SkeletonTemplates";
 
 export function DashboardLayout() {
   const { isAuthenticated } = useAuthStore();
@@ -51,7 +52,11 @@ export function DashboardLayout() {
               transition={{ duration: 0.2 }}
               className="w-full"
             >
-              <Outlet />
+              <Suspense 
+                fallback={<SkeletonDashboard />}
+              >
+                <Outlet />
+              </Suspense>
             </motion.div>
           </AnimatePresence>
         </main>

@@ -1,8 +1,9 @@
 import { useExpenses, useExpenseMetrics, useImportExpenses } from "../hooks";
+import { SkeletonTable, SkeletonStatsCard } from "@/components/ui/skeleton/SkeletonTemplates";
 import { DataTable } from "@/components/common/DataTable";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatsCard } from "@/components/common/StatsCard";
-import { formatPaise as formatCurrency } from "@/utils/formatters";
+import { formatCurrency } from "@/utils/formatters";
 import { ColumnDef } from "@tanstack/react-table";
 import { ExpenseRecord } from "../types";
 import { format } from "date-fns";
@@ -12,7 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { EmptyState } from "@/components/common/EmptyState";
 import { useState, useRef } from "react";
 import { expenseService } from "../services";
@@ -108,6 +109,7 @@ const expenseColumns: ColumnDef<ExpenseRecord>[] = [
 ];
 
 export function ExpensePage() {
+  const navigate = useNavigate();
   const { data: expenses, isLoading } = useExpenses();
   const { data: metrics } = useExpenseMetrics();
   const importMutation = useImportExpenses();
@@ -163,16 +165,7 @@ export function ExpensePage() {
     });
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground animate-pulse">Loading expense ledger...</p>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="space-y-8 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -219,7 +212,7 @@ export function ExpensePage() {
         }
       />
 
-      {metrics && (
+      {metrics ? (
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
           <StatsCard
             title="Monthly Spend (MTD)"
@@ -255,9 +248,18 @@ export function ExpensePage() {
             className="border-destructive/20 bg-destructive/5"
           />
         </div>
+      ) : (
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          <SkeletonStatsCard />
+          <SkeletonStatsCard />
+          <SkeletonStatsCard />
+          <SkeletonStatsCard />
+        </div>
       )}
 
-      {expenses && expenses.length > 0 ? (
+      {isLoading ? (
+        <SkeletonTable />
+      ) : expenses && expenses.length > 0 ? (
         <DataTable
           columns={expenseColumns}
           data={expenses}
@@ -269,7 +271,7 @@ export function ExpensePage() {
           description="Record your first operational expense or bill."
           icon={<Wallet />}
           actionLabel="Record Expense"
-          onAction={() => window.location.href = '/expenses/new'}
+          onAction={() => navigate({ to: '/expenses/new' })}
         />
       )}
 

@@ -5,11 +5,14 @@ import {
   useInventoryDistribution,
   useInsights 
 } from '../hooks';
+import { useSales } from '@/features/sales/hooks';
+import { useExpenses } from '@/features/expenses/hooks';
 import { StatsCard } from '@/components/common/StatsCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RevenueAreaChart, SalesBarChart, ModernDonutChart } from './Charts';
-import { formatPaise as formatCurrency } from '@/utils/formatters';
+import { formatCurrency } from '@/utils/formatters';
 import { IndianRupee, TrendingUp, Package, Users, Activity } from 'lucide-react';
+import { SkeletonChart } from '@/components/ui/skeleton/SkeletonTemplates';
 
 export const OverviewView = () => {
   const { data: metrics } = useReportMetrics();
@@ -17,8 +20,30 @@ export const OverviewView = () => {
   const { data: salesData } = useSalesByModel();
   const { data: inventoryData } = useInventoryDistribution();
   const { data: insights } = useInsights();
+  const { data: salesList } = useSales();
+  const { data: expenseList } = useExpenses();
 
-  if (!metrics || !trendData) return <div className="h-96 flex items-center justify-center">Loading Data...</div>;
+  if (!metrics || !trendData) return <SkeletonChart />;
+
+  const hasSales = salesList && salesList.length > 0;
+  const hasExpenses = expenseList && expenseList.length > 0;
+
+  const totalRev = hasSales ? salesList.reduce((sum, s) => sum + (s.grandTotal || 0), 0) : metrics.revenue;
+  const totalExp = hasExpenses ? expenseList.reduce((sum, e) => sum + (e.totalAmount || 0), 0) : metrics.expenses;
+  const netProfit = totalRev - totalExp;
+  const unitsSold = hasSales ? salesList.length : metrics.unitsSold;
+
+  // Dynamic Top Selling Models bar chart
+  const modelMap = new Map<string, number>();
+  if (hasSales) {
+    salesList.forEach(s => {
+      const modelName = s.vehicleModel || `${s.vehicleMake || ''} ${s.vehicleModel || 'Model'}`.trim();
+      modelMap.set(modelName, (modelMap.get(modelName) || 0) + 1);
+    });
+  }
+
+  const computedSalesData = Array.from(modelMap.entries()).map(([name, value]) => ({ name, value }));
+  const activeSalesData = computedSalesData.length > 0 ? computedSalesData : (salesData || []);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -27,19 +52,19 @@ export const OverviewView = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatsCard
           title="Total Revenue"
-          value={formatCurrency(metrics.revenue)}
+          value={formatCurrency(totalRev)}
           icon={<IndianRupee className="h-4 w-4" />}
           trend={{ value: Math.abs(metrics.revenueGrowth), isPositive: metrics.revenueGrowth >= 0 }}
         />
         <StatsCard
           title="Net Profit"
-          value={formatCurrency(metrics.netProfit)}
+          value={formatCurrency(netProfit)}
           icon={<TrendingUp className="h-4 w-4" />}
           trend={{ value: Math.abs(metrics.profitGrowth), isPositive: metrics.profitGrowth >= 0 }}
         />
         <StatsCard
           title="Units Sold"
-          value={metrics.unitsSold.toString()}
+          value={unitsSold.toString()}
           icon={<Package className="h-4 w-4" />}
           trend={{ value: Math.abs(metrics.unitsSoldGrowth), isPositive: metrics.unitsSoldGrowth >= 0 }}
         />
@@ -89,7 +114,7 @@ export const OverviewView = () => {
             <CardTitle className="text-base font-medium">Top Selling Models</CardTitle>
           </CardHeader>
           <CardContent>
-            {salesData && <SalesBarChart data={salesData} />}
+            {activeSalesData && <SalesBarChart data={activeSalesData} />}
           </CardContent>
         </Card>
 

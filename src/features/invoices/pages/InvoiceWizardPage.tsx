@@ -1,5 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
+import { GST_RATES, INVOICE_PAYMENT_METHODS, SALES_EXECUTIVES, BRANCHES } from "@/constants/staticDropdowns";
+import { useSalesExecutives } from "@/features/users/hooks";
+import { useBranches } from "@/features/settings/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createInvoiceWizardSchema, CreateInvoiceWizardForm } from "../schemas";
 import { useCreateInvoice, useInvoice, useUpdateInvoice } from "../hooks";
@@ -8,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ChevronRight, ChevronLeft, Save, IndianRupee, Banknote, Search, Calendar, User, FileText } from "lucide-react";
+import { Check, ChevronRight, ChevronLeft, Save, IndianRupee, Banknote, Search, Calendar, FileText } from "lucide-react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { formatCurrency } from "@/utils/formatters";
 import { useSales } from "../../sales/hooks";
@@ -31,6 +34,7 @@ export function InvoiceWizardPage() {
 
   const { data: salesList } = useSales();
   const sales = salesList || [];
+  const { data: apiExecutives } = useSalesExecutives();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -54,8 +58,37 @@ export function InvoiceWizardPage() {
 
   const { register, trigger, watch, handleSubmit, setValue, formState: { errors }, reset } = form;
 
+  const currentExecValue = watch("metadata.salesExecutive");
+  const currentBranchValue = watch("metadata.branch");
   const selectedSaleId = watch("sale.saleId");
-  const selectedSale = sales.find(s => s.invoiceNumber === selectedSaleId || s.id === selectedSaleId);
+  const selectedSale = sales.find(s => s.id === selectedSaleId);
+
+  const rawExecOptions = (apiExecutives && apiExecutives.length > 0)
+    ? apiExecutives.map(u => {
+        const name = [u.firstName, u.lastName].filter(Boolean).join(" ");
+        const val = name || u.email;
+        return { value: val, label: name ? `${name} (${u.email})` : u.email };
+      })
+    : SALES_EXECUTIVES;
+
+  const executiveOptions = [...rawExecOptions];
+  [currentExecValue, selectedSale?.salesExecutive, invoice?.salesExecutive].forEach(exec => {
+    if (exec && !executiveOptions.some(x => x.value.toLowerCase() === exec.toLowerCase() || x.label.toLowerCase() === exec.toLowerCase())) {
+      executiveOptions.unshift({ value: exec, label: exec });
+    }
+  });
+
+  const { data: apiBranches } = useBranches();
+  const rawBranchOptions = (apiBranches && apiBranches.length > 0)
+    ? apiBranches.map(b => ({ value: b.name, label: b.name }))
+    : BRANCHES;
+
+  const branchOptions = [...rawBranchOptions];
+  [currentBranchValue, selectedSale?.branch, invoice?.branch].forEach(br => {
+    if (br && !branchOptions.some(b => b.value.toLowerCase() === br.toLowerCase() || b.label.toLowerCase() === br.toLowerCase())) {
+      branchOptions.unshift({ value: br, label: br });
+    }
+  });
 
   const filteredSales = sales.filter(s => 
     s && 
@@ -88,16 +121,16 @@ export function InvoiceWizardPage() {
         branch: invoice.branch ?? "Downtown Main Showroom",
       },
       pricing: {
-        basePrice: (invoice.basePrice ?? 0) / 100,
-        accessoriesPrice: (invoice.accessoriesPrice ?? 0) / 100,
-        registrationTax: (invoice.registrationTax ?? 0) / 100,
-        insurance: (invoice.insurance ?? 0) / 100,
-        otherCharges: (invoice.otherCharges ?? 0) / 100,
-        discount: (invoice.discount ?? 0) / 100,
+        basePrice: invoice.basePrice ?? 0,
+        accessoriesPrice: invoice.accessoriesPrice ?? 0,
+        registrationTax: invoice.registrationTax ?? 0,
+        insurance: invoice.insurance ?? 0,
+        otherCharges: invoice.otherCharges ?? 0,
+        discount: invoice.discount ?? 0,
         gstRate: ((invoice.cgstRate || 0) + (invoice.sgstRate || 0)) as any || 28,
       },
       payment: {
-        amountPaid: (invoice.amountPaid ?? 0) / 100,
+        amountPaid: invoice.amountPaid ?? 0,
         method: (invoice.payments?.[0]?.method as any) ?? "Bank Transfer",
         referenceId: invoice.payments?.[0]?.referenceId ?? "",
       },
@@ -112,18 +145,24 @@ export function InvoiceWizardPage() {
 
   useEffect(() => {
     if (selectedSale && !isEditMode) {
-      setValue("metadata.salesExecutive", selectedSale.salesExecutive || "", { shouldValidate: true });
-      setValue("metadata.branch", selectedSale.branch || "", { shouldValidate: true });
-      setValue("pricing.basePrice", (selectedSale.basePrice || 0) / 100, { shouldValidate: true });
-      setValue("pricing.accessoriesPrice", (selectedSale.accessoriesPrice || 0) / 100, { shouldValidate: true });
-      setValue("pricing.registrationTax", (selectedSale.registrationTax || 0) / 100, { shouldValidate: true });
-      setValue("pricing.insurance", (selectedSale.insurance || 0) / 100, { shouldValidate: true });
-      setValue("pricing.discount", (selectedSale.discount || 0) / 100, { shouldValidate: true });
-      setValue("payment.amountPaid", (selectedSale.totalPaid || 0) / 100, { shouldValidate: true });
+      const execMatch = executiveOptions.find(x => x.value.toLowerCase() === (selectedSale.salesExecutive || "").toLowerCase() || x.label.toLowerCase() === (selectedSale.salesExecutive || "").toLowerCase());
+      const execVal = execMatch ? execMatch.value : (selectedSale.salesExecutive || "");
+
+      const branchMatch = branchOptions.find(b => b.value.toLowerCase() === (selectedSale.branch || "").toLowerCase() || b.label.toLowerCase() === (selectedSale.branch || "").toLowerCase());
+      const branchVal = branchMatch ? branchMatch.value : (selectedSale.branch || "");
+
+      setValue("metadata.salesExecutive", execVal, { shouldValidate: true });
+      setValue("metadata.branch", branchVal, { shouldValidate: true });
+      setValue("pricing.basePrice", selectedSale.basePrice || 0, { shouldValidate: true });
+      setValue("pricing.accessoriesPrice", selectedSale.accessoriesPrice || 0, { shouldValidate: true });
+      setValue("pricing.registrationTax", selectedSale.registrationTax || 0, { shouldValidate: true });
+      setValue("pricing.insurance", selectedSale.insurance || 0, { shouldValidate: true });
+      setValue("pricing.discount", selectedSale.discount || 0, { shouldValidate: true });
+      setValue("payment.amountPaid", selectedSale.totalPaid || 0, { shouldValidate: true });
       
-      const basePriceRupees = (selectedSale.basePrice || 0) / 100;
-      const discountRupees = (selectedSale.discount || 0) / 100;
-      const gstAmountRupees = (selectedSale.gstAmount || 0) / 100;
+      const basePriceRupees = selectedSale.basePrice || 0;
+      const discountRupees = selectedSale.discount || 0;
+      const gstAmountRupees = selectedSale.gstAmount || 0;
       const calculatedGstRate = basePriceRupees > 0 ? Math.round((gstAmountRupees / (basePriceRupees - discountRupees)) * 100) : 28;
       setValue("pricing.gstRate", calculatedGstRate === 18 ? 18 : 28, { shouldValidate: true });
     }
@@ -335,14 +374,21 @@ export function InvoiceWizardPage() {
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Sales Executive</label>
-                          <div className="relative">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input {...register("metadata.salesExecutive")} className="pl-9 bg-muted/50" />
-                          </div>
+                          <select {...register("metadata.salesExecutive")} className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                            <option value="">Select executive...</option>
+                            {executiveOptions.map((x) => (
+                              <option key={x.value} value={x.value}>{x.label}</option>
+                            ))}
+                          </select>
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Branch Location</label>
-                          <Input {...register("metadata.branch")} className="bg-muted/50" />
+                          <select {...register("metadata.branch")} className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                            <option value="">Select branch...</option>
+                            {branchOptions.map((b) => (
+                              <option key={b.value} value={b.value}>{b.label}</option>
+                            ))}
+                          </select>
                         </div>
                       </div>
                     </motion.div>
@@ -366,8 +412,9 @@ export function InvoiceWizardPage() {
                         <div className="space-y-2 border-l-2 pl-4 border-emerald-500/50 py-1">
                           <label className="text-sm font-medium">GST Rate (%)</label>
                           <select {...register("pricing.gstRate")} className="flex h-10 w-full rounded-md border border-input bg-emerald-500/5 px-3 py-2 text-sm text-emerald-700 focus-visible:outline-none">
-                            <option value={28}>28% (Standard 2-Wheeler)</option>
-                            <option value={18}>18% (EV/Sub-segment)</option>
+                            {GST_RATES.map((g) => (
+                              <option key={g.value} value={Number(g.value)}>{g.label}</option>
+                            ))}
                           </select>
                         </div>
                         <div className="space-y-2">
@@ -403,11 +450,9 @@ export function InvoiceWizardPage() {
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Payment Mode</label>
                           <select {...register("payment.method")} className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                            <option value="Bank Transfer">Bank Transfer (NEFT/RTGS)</option>
-                            <option value="UPI">UPI</option>
-                            <option value="Credit Card">Credit Card</option>
-                            <option value="Cash">Cash</option>
-                            <option value="Finance">Dealer Finance Partner</option>
+                            {INVOICE_PAYMENT_METHODS.map((m) => (
+                              <option key={m.value} value={m.value}>{m.label}</option>
+                            ))}
                           </select>
                         </div>
                         <div className="space-y-2">

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { FUEL_TYPES, TRANSMISSIONS, STORAGE_LOCATIONS, SUPPLIERS } from "@/constants/staticDropdowns";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createInventoryWizardSchema, CreateInventoryWizardForm } from "../schemas";
 import { useReceiveInventory, useInventoryVehicle, useUpdateInventory } from "../hooks";
@@ -163,7 +164,12 @@ export function InventoryWizardPage() {
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Supplier Name *</label>
-                      <Input {...register("supplierInfo.supplier")} placeholder="e.g. Metro Motors Wholesale" className="bg-muted/50" />
+                      <select {...register("supplierInfo.supplier")} className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                        <option value="">Select a supplier...</option>
+                        {SUPPLIERS.map(sup => (
+                          <option key={sup.value} value={sup.label}>{sup.label} ({sup.contactPerson})</option>
+                        ))}
+                      </select>
                       {errors.supplierInfo?.supplier && <p className="text-xs text-destructive">{errors.supplierInfo.supplier.message}</p>}
                     </div>
                     <div className="space-y-2">
@@ -215,16 +221,17 @@ export function InventoryWizardPage() {
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Fuel Type</label>
                       <select {...register("vehicleInfo.fuelType")} className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                        <option value="Petrol">Petrol</option>
-                        <option value="Electric">Electric</option>
-                        <option value="Hybrid">Hybrid</option>
+                        {FUEL_TYPES.map((f) => (
+                          <option key={f.value} value={f.value}>{f.label}</option>
+                        ))}
                       </select>
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Transmission</label>
                       <select {...register("vehicleInfo.transmission")} className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                        <option value="Manual">Manual</option>
-                        <option value="Automatic">Automatic</option>
+                        {TRANSMISSIONS.map((t) => (
+                          <option key={t.value} value={t.value}>{t.label}</option>
+                        ))}
                       </select>
                     </div>
                     <div className="space-y-2 sm:col-span-3">
@@ -298,9 +305,9 @@ export function InventoryWizardPage() {
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Current Location *</label>
                       <select {...register("locationInfo.location")} className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                        <option value="Warehouse">Warehouse</option>
-                        <option value="Showroom">Showroom (Display)</option>
-                        <option value="Branch">Branch Location</option>
+                        {STORAGE_LOCATIONS.map((l) => (
+                          <option key={l.value} value={l.value}>{l.label}</option>
+                        ))}
                       </select>
                     </div>
                     <div className="space-y-2">
@@ -356,12 +363,12 @@ export function InventoryWizardPage() {
           
           {/* Footer Actions */}
           <div className="flex items-center justify-between border-t p-6 bg-muted/20">
-            <Button variant="outline" onClick={handleBack} disabled={currentStep === 0} className="shadow-sm">
+            <Button type="button" variant="outline" onClick={handleBack} disabled={currentStep === 0} className="shadow-sm">
               <ChevronLeft className="mr-2 h-4 w-4" /> Back
             </Button>
             
             {currentStep < steps.length - 1 ? (
-              <Button onClick={handleNext} className="shadow-sm">
+              <Button type="button" onClick={handleNext} className="shadow-sm">
                 Next <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             ) : (

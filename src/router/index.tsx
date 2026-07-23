@@ -1,17 +1,38 @@
-import { createRouter, createRoute, createRootRoute } from "@tanstack/react-router";
+import React from "react";
+import { createRouter, createRoute, createRootRoute, Outlet } from "@tanstack/react-router";
 import { AuthLayout } from "@/layouts/AuthLayout";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { LoginPage } from "@/features/auth";
-import { DashboardPage } from "@/features/dashboard";
-import { CustomersPage, CustomerWizardPage, CustomerProfilePage } from "@/features/customers";
-import { InventoryPage, InventoryWizardPage, InventoryWorkspacePage } from "@/features/inventory";
-import { SalesPage, SalesWizardPage, SalesWorkspacePage } from "@/features/sales";
-import { PurchasePage, PurchaseWizardPage, PurchaseWorkspacePage } from "@/features/purchases";
-import { InvoicePage, InvoiceWizardPage, InvoiceWorkspacePage } from "@/features/invoices";
-import { ExpensePage, ExpenseWizardPage, ExpenseWorkspacePage } from "@/features/expenses";
-import { ReportsDashboardPage } from "@/features/reports";
-import { SettingsPage } from "@/features/settings";
-import { Outlet } from "@tanstack/react-router";
+
+// Lazy-loaded Pages
+const LoginPage = React.lazy(() => import("@/features/auth/pages/LoginPage").then(m => ({ default: m.LoginPage })));
+const DashboardPage = React.lazy(() => import("@/features/dashboard/pages/DashboardPage").then(m => ({ default: m.DashboardPage })));
+
+const CustomersPage = React.lazy(() => import("@/features/customers/pages/CustomersPage").then(m => ({ default: m.CustomersPage })));
+const CustomerWizardPage = React.lazy(() => import("@/features/customers/pages/CustomerWizardPage").then(m => ({ default: m.CustomerWizardPage })));
+const CustomerProfilePage = React.lazy(() => import("@/features/customers/pages/CustomerProfilePage").then(m => ({ default: m.CustomerProfilePage })));
+
+const InventoryPage = React.lazy(() => import("@/features/inventory/pages/InventoryPage").then(m => ({ default: m.InventoryPage })));
+const InventoryWizardPage = React.lazy(() => import("@/features/inventory/pages/InventoryWizardPage").then(m => ({ default: m.InventoryWizardPage })));
+const InventoryWorkspacePage = React.lazy(() => import("@/features/inventory/pages/InventoryWorkspacePage").then(m => ({ default: m.InventoryWorkspacePage })));
+
+const SalesPage = React.lazy(() => import("@/features/sales/pages/SalesPage").then(m => ({ default: m.SalesPage })));
+const SalesWizardPage = React.lazy(() => import("@/features/sales/pages/SalesWizardPage").then(m => ({ default: m.SalesWizardPage })));
+const SalesWorkspacePage = React.lazy(() => import("@/features/sales/pages/SalesWorkspacePage").then(m => ({ default: m.SalesWorkspacePage })));
+
+const PurchasePage = React.lazy(() => import("@/features/purchases/pages/PurchasePage").then(m => ({ default: m.PurchasePage })));
+const PurchaseWizardPage = React.lazy(() => import("@/features/purchases/pages/PurchaseWizardPage").then(m => ({ default: m.PurchaseWizardPage })));
+const PurchaseWorkspacePage = React.lazy(() => import("@/features/purchases/pages/PurchaseWorkspacePage").then(m => ({ default: m.PurchaseWorkspacePage })));
+
+const InvoicePage = React.lazy(() => import("@/features/invoices/pages/InvoicePage").then(m => ({ default: m.InvoicePage })));
+const InvoiceWizardPage = React.lazy(() => import("@/features/invoices/pages/InvoiceWizardPage").then(m => ({ default: m.InvoiceWizardPage })));
+const InvoiceWorkspacePage = React.lazy(() => import("@/features/invoices/pages/InvoiceWorkspacePage").then(m => ({ default: m.InvoiceWorkspacePage })));
+
+const ExpensePage = React.lazy(() => import("@/features/expenses/pages/ExpensePage").then(m => ({ default: m.ExpensePage })));
+const ExpenseWizardPage = React.lazy(() => import("@/features/expenses/pages/ExpenseWizardPage").then(m => ({ default: m.ExpenseWizardPage })));
+const ExpenseWorkspacePage = React.lazy(() => import("@/features/expenses/pages/ExpenseWorkspacePage").then(m => ({ default: m.ExpenseWorkspacePage })));
+
+const ReportsDashboardPage = React.lazy(() => import("@/features/reports/pages/ReportsDashboardPage").then(m => ({ default: m.ReportsDashboardPage })));
+const SettingsPage = React.lazy(() => import("@/features/settings/pages/SettingsPage").then(m => ({ default: m.SettingsPage })));
 
 // Root Route
 const rootRoute = createRootRoute({

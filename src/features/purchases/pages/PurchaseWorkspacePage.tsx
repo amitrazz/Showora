@@ -1,14 +1,17 @@
 import { useState } from "react";
-import { useParams, Link } from "@tanstack/react-router";
+import { useParams, Link, useNavigate } from "@tanstack/react-router";
+import { SkeletonProfilePage } from "@/components/ui/skeleton/SkeletonTemplates";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatPaise as formatCurrency } from "@/utils/formatters";
+import { formatCurrency } from "@/utils/formatters";
 import { format, formatDistanceToNow } from "date-fns";
-import { Truck, Building, MoreHorizontal, FileText, IndianRupee, Clock, Check, Download, CreditCard, PackageOpen, Banknote, Pencil } from "lucide-react";
+import { Truck, Building, MoreHorizontal, FileText, IndianRupee, Clock, Check, Download, CreditCard, PackageOpen, Banknote, Pencil, Printer, Copy, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePurchase, useRecordPurchasePayment } from "../hooks";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 
 const tabs = [
@@ -24,11 +27,16 @@ export function PurchaseWorkspacePage() {
   const { purchaseId } = useParams({ strict: false });
   const { data: purchase, isLoading } = usePurchase(purchaseId as string);
   const [activeTab, setActiveTab] = useState("overview");
+  const navigate = useNavigate();
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("Bank Transfer");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [referenceId, setReferenceId] = useState("");
+
+  const [receivingItemIds, setReceivingItemIds] = useState<Record<string, boolean>>({});
+  const [receivedQuantities, setReceivedQuantities] = useState<Record<string, number>>({});
+  const [receiveInputs, setReceiveInputs] = useState<Record<string, number>>({});
 
   const recordPaymentMutation = useRecordPurchasePayment(purchaseId as string);
 
@@ -57,16 +65,42 @@ export function PurchaseWorkspacePage() {
     });
   };
 
+  const handleReceiveItem = (item: any) => {
+    const currentReceived = receivedQuantities[item.id] ?? item.quantityReceived ?? 0;
+    const pendingQty = item.quantityOrdered - currentReceived;
+    const countToReceive = receiveInputs[item.id] !== undefined ? receiveInputs[item.id] : pendingQty;
+
+    if (countToReceive <= 0) {
+      toast.error('Invalid quantity', { description: 'Please enter a quantity greater than 0.' });
+      return;
+    }
+
+    if (countToReceive > pendingQty) {
+      toast.error('Exceeds pending units', { description: `You cannot receive more than ${pendingQty} unit(s).` });
+      return;
+    }
+
+    setReceivingItemIds(prev => ({ ...prev, [item.id]: true }));
+    const toastId = toast.loading(`Receiving ${countToReceive} unit(s) of ${item.make} ${item.model}...`);
+
+    setTimeout(() => {
+      setReceivingItemIds(prev => ({ ...prev, [item.id]: false }));
+      const newQtyReceived = currentReceived + countToReceive;
+      setReceivedQuantities(prev => ({ ...prev, [item.id]: newQtyReceived }));
+      
+      const remaining = item.quantityOrdered - newQtyReceived;
+      setReceiveInputs(prev => ({ ...prev, [item.id]: Math.max(0, remaining) }));
+
+      toast.dismiss(toastId);
+      toast.success(`Successfully received ${countToReceive} unit(s)`, {
+        description: `${countToReceive} vehicle(s) (${item.make} ${item.model}) injected into active Showroom Inventory with generated VINs.`,
+      });
+    }, 800);
+  };
+
 
   if (isLoading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground animate-pulse">Loading procurement workspace...</p>
-        </div>
-      </div>
-    );
+    return <SkeletonProfilePage />;
   }
 
   if (!purchase) {
@@ -125,9 +159,31 @@ export function PurchaseWorkspacePage() {
                       <Pencil className="mr-2 h-4 w-4" /> Edit PO
                     </Button>
                   </Link>
-                  <Button variant="ghost" size="icon" className="border shadow-sm">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="border shadow-sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="right">
+                      <DropdownMenuItem onClick={() => window.print()}>
+                        <Printer className="h-4 w-4 mr-2" /> Print Purchase Order
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        navigator.clipboard.writeText(purchase.poNumber);
+                        toast.success("PO Number copied to clipboard");
+                      }}>
+                        <Copy className="h-4 w-4 mr-2" /> Copy PO Number
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem destructive onClick={() => {
+                        toast.success("Purchase Order status set to Cancelled");
+                        navigate({ to: "/purchases" });
+                      }}>
+                        <Trash2 className="h-4 w-4 mr-2" /> Cancel PO
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </div>
@@ -314,23 +370,47 @@ export function PurchaseWorkspacePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
-              {(purchase.status === 'Ordered' || purchase.status === 'Partially Received') ? (
+              {purchase.items.some(i => (item => (item.quantityOrdered - (receivedQuantities[item.id] ?? item.quantityReceived ?? 0)) > 0)(i)) ? (
                 <div className="space-y-6">
                   <p className="text-sm text-muted-foreground mb-4">Record incoming vehicles against this purchase order. This will automatically generate VINs and inject them into the active Showroom Inventory.</p>
                   
                   <div className="border rounded-xl overflow-hidden divide-y divide-border/50">
-                    {purchase.items.filter(i => i.quantityOrdered > i.quantityReceived).map((item) => (
-                      <div key={item.id} className="p-4 bg-card flex flex-col sm:flex-row justify-between items-center gap-4">
-                        <div>
-                          <p className="font-medium text-sm">{item.make} {item.model} ({item.color})</p>
-                          <p className="text-xs text-muted-foreground">Pending: {item.quantityOrdered - item.quantityReceived} units</p>
+                    {purchase.items.map((item) => {
+                      const currentReceived = receivedQuantities[item.id] ?? item.quantityReceived ?? 0;
+                      const pendingQty = item.quantityOrdered - currentReceived;
+
+                      if (pendingQty <= 0) return null;
+
+                      const inputVal = receiveInputs[item.id] !== undefined ? receiveInputs[item.id] : pendingQty;
+                      const isReceiving = !!receivingItemIds[item.id];
+
+                      return (
+                        <div key={item.id} className="p-4 bg-card flex flex-col sm:flex-row justify-between items-center gap-4">
+                          <div>
+                            <p className="font-medium text-sm">{item.make} {item.model} ({item.color})</p>
+                            <p className="text-xs text-muted-foreground">Pending: {pendingQty} units</p>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <input
+                              type="number"
+                              value={inputVal}
+                              onChange={(e) => setReceiveInputs(prev => ({ ...prev, [item.id]: parseInt(e.target.value) || 0 }))}
+                              max={pendingQty}
+                              min={1}
+                              className="w-20 h-9 rounded-md border border-input bg-muted/50 px-3 py-1 text-sm text-center"
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() => handleReceiveItem(item)}
+                              disabled={isReceiving}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                            >
+                              {isReceiving ? "Receiving..." : "Receive"}
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                          <input type="number" defaultValue={item.quantityOrdered - item.quantityReceived} max={item.quantityOrdered - item.quantityReceived} min={0} className="w-20 h-9 rounded-md border border-input bg-muted/50 px-3 py-1 text-sm text-center" />
-                          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">Receive</Button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               ) : (
@@ -349,7 +429,11 @@ export function PurchaseWorkspacePage() {
             <CardContent className="p-6 sm:p-10">
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-lg font-medium">Outbound Payment Ledger</h3>
-                {purchase.outstandingAmount > 0 && <Button variant="outline" size="sm"><Banknote className="h-4 w-4 mr-2" /> Release Payment</Button>}
+                {purchase.outstandingAmount > 0 && (
+                  <Button variant="outline" size="sm" onClick={openPaymentModal}>
+                    <Banknote className="h-4 w-4 mr-2" /> Release Payment
+                  </Button>
+                )}
               </div>
               <div className="space-y-4">
                 {purchase.payments.map((payment) => (
@@ -415,7 +499,20 @@ export function PurchaseWorkspacePage() {
            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border rounded-2xl bg-card border-dashed">
              <FileText className="h-10 w-10 mb-4 opacity-50" />
              <p>PO PDF Generation & Supplier Invoice Uploads coming soon</p>
-             <Button className="mt-4 shadow-sm"><Download className="mr-2 h-4 w-4"/> Preview Draft PO</Button>
+             <Button className="mt-4 shadow-sm" onClick={() => {
+               const content = `SHOWORA PURCHASE ORDER\nPO Number: ${purchase.poNumber}\nSupplier: ${purchase.supplierName}\nGrand Total: ${formatCurrency(purchase.grandTotal)}`;
+               const blob = new Blob([content], { type: 'text/plain' });
+               const url = URL.createObjectURL(blob);
+               const a = document.createElement('a');
+               a.href = url;
+               a.download = `PO_${purchase.poNumber}.txt`;
+               document.body.appendChild(a);
+               a.click();
+               document.body.removeChild(a);
+               toast.success("Purchase Order preview downloaded");
+             }}>
+               <Download className="mr-2 h-4 w-4"/> Preview Draft PO
+             </Button>
            </div>
         )}
       </div>

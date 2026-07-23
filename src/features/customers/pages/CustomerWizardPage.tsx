@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { GENDERS, SALES_EXECUTIVES } from "@/constants/staticDropdowns";
+import { useSalesExecutives } from "@/features/users/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createCustomerWizardSchema, CreateCustomerWizardForm } from "../schemas";
 import { useCreateCustomer, useCustomer, useUpdateCustomer } from "../hooks";
@@ -27,6 +29,15 @@ export function CustomerWizardPage() {
   const { data: customer, isLoading } = useCustomer(customerId as string);
   const createMutation = useCreateCustomer();
   const updateMutation = useUpdateCustomer();
+  const { data: apiExecutives } = useSalesExecutives();
+
+  const executiveOptions = (apiExecutives && apiExecutives.length > 0)
+    ? apiExecutives.map(u => {
+        const name = [u.firstName, u.lastName].filter(Boolean).join(" ");
+        const val = name || u.email;
+        return { value: val, label: name ? `${name} (${u.email})` : u.email };
+      })
+    : SALES_EXECUTIVES;
 
   const isEditMode = !!customerId;
   const isSaving =
@@ -203,9 +214,11 @@ export function CustomerWizardPage() {
                         className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                       >
                         <option value="">Select Gender</option>
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <option value="other">Other</option>
+                        {GENDERS.map((g) => (
+                          <option key={g.value} value={g.value}>
+                            {g.label}
+                          </option>
+                        ))}
                       </select>
 
                       {errors.basic?.gender && (
@@ -290,9 +303,11 @@ export function CustomerWizardPage() {
                         className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                       >
                         <option value="">Select Gender</option>
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <option value="other">Other</option>
+                        {GENDERS.map((g) => (
+                          <option key={g.value} value={g.value}>
+                            {g.label}
+                          </option>
+                        ))}
                       </select>
 
                       {errors.basic?.gender && (
@@ -349,7 +364,12 @@ export function CustomerWizardPage() {
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Sales Executive *</label>
-                      <Input {...register("additional.salesExecutive")} placeholder="Assign to..." className="bg-muted/50" />
+                      <select {...register("additional.salesExecutive")} className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring">
+                        <option value="">Select executive...</option>
+                        {executiveOptions.map((x) => (
+                          <option key={x.value} value={x.value}>{x.label}</option>
+                        ))}
+                      </select>
                       {errors.additional?.salesExecutive && <p className="text-xs text-destructive">{errors.additional.salesExecutive.message}</p>}
                     </div>
                     <div className="space-y-2">

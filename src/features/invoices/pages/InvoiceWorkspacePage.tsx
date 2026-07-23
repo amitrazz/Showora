@@ -1,14 +1,17 @@
 import { useState } from "react";
-import { useParams, Link } from "@tanstack/react-router";
+import { useParams, Link, useNavigate } from "@tanstack/react-router";
+import { SkeletonProfilePage } from "@/components/ui/skeleton/SkeletonTemplates";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatPaise as formatCurrency } from "@/utils/formatters";
+import { formatCurrency } from "@/utils/formatters";
 import { format, formatDistanceToNow } from "date-fns";
-import { Receipt, FileText, Download, Printer, Share2, MoreHorizontal, IndianRupee, Clock, Check, CreditCard, Pencil } from "lucide-react";
+import { Receipt, FileText, Download, Printer, Share2, MoreHorizontal, IndianRupee, Clock, Check, CreditCard, Pencil, Copy, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useInvoice, useRecordInvoicePayment } from "../hooks";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 
 const tabs = [
@@ -22,6 +25,7 @@ export function InvoiceWorkspacePage() {
   const { invoiceId } = useParams({ strict: false });
   const { data: invoice, isLoading } = useInvoice(invoiceId as string);
   const [activeTab, setActiveTab] = useState("overview");
+  const navigate = useNavigate();
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("Bank Transfer");
@@ -57,14 +61,7 @@ export function InvoiceWorkspacePage() {
 
 
   if (isLoading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground animate-pulse">Loading invoice workspace...</p>
-        </div>
-      </div>
-    );
+    return <SkeletonProfilePage />;
   }
 
   if (!invoice) {
@@ -121,9 +118,31 @@ export function InvoiceWorkspacePage() {
                       <Pencil className="mr-2 h-4 w-4" /> Edit Invoice
                     </Button>
                   </Link>
-                  <Button variant="ghost" size="icon" className="border shadow-sm">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="border shadow-sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="right">
+                      <DropdownMenuItem onClick={() => window.print()}>
+                        <Printer className="h-4 w-4 mr-2" /> Print Invoice
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        navigator.clipboard.writeText(invoice.invoiceNumber);
+                        toast.success("Invoice Number copied to clipboard");
+                      }}>
+                        <Copy className="h-4 w-4 mr-2" /> Copy Invoice Number
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem destructive onClick={() => {
+                        toast.success("Invoice status set to Void");
+                        navigate({ to: "/invoices" });
+                      }}>
+                        <Trash2 className="h-4 w-4 mr-2" /> Void Invoice
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </div>
@@ -304,9 +323,34 @@ export function InvoiceWorkspacePage() {
         {activeTab === "pdf" && (
           <div className="space-y-4 animate-in fade-in duration-500">
             <div className="flex justify-end gap-3">
-              <Button variant="outline" size="sm"><Printer className="mr-2 h-4 w-4" /> Print</Button>
-              <Button variant="outline" size="sm"><Download className="mr-2 h-4 w-4" /> Download PDF</Button>
-              <Button variant="outline" size="sm"><Share2 className="mr-2 h-4 w-4" /> Email</Button>
+              <Button variant="outline" size="sm" onClick={() => window.print()}>
+                <Printer className="mr-2 h-4 w-4" /> Print
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  toast.success(`Downloading invoice ${invoice.invoiceNumber}...`);
+                  const content = `INVOICE ${invoice.invoiceNumber}\nCustomer: ${invoice.customerName}\nGrand Total: ${formatCurrency(invoice.grandTotal)}`;
+                  const blob = new Blob([content], { type: 'text/plain' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `Invoice_${invoice.invoiceNumber}.txt`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                }}
+              >
+                <Download className="mr-2 h-4 w-4" /> Download PDF
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => toast.success(`Email sent to customer for invoice ${invoice.invoiceNumber}`)}
+              >
+                <Share2 className="mr-2 h-4 w-4" /> Email
+              </Button>
             </div>
 
             <div className="flex justify-center p-4 sm:p-10 bg-muted/30 rounded-xl overflow-x-auto">

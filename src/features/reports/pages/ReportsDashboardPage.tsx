@@ -1,12 +1,16 @@
-import { useState } from "react";
-import { OverviewView } from "../components/OverviewView";
-import { SalesView } from "../components/SalesView";
-import { FinanceView } from "../components/FinanceView";
-import { InventoryView } from "../components/InventoryView";
-import { CustomersView } from "../components/CustomersView";
-import { PurchasesView } from "../components/PurchasesView";
-import { ExpensesView } from "../components/ExpensesView";
-import { TaxesView } from "../components/TaxesView";
+import React, { useState, Suspense } from "react";
+import { SkeletonChart } from "@/components/ui/skeleton/SkeletonTemplates";
+import { REPORT_EXPORTS } from "@/constants/staticDropdowns";
+
+// Lazy-loaded Views
+const OverviewView = React.lazy(() => import("../components/OverviewView").then(m => ({ default: m.OverviewView })));
+const SalesView = React.lazy(() => import("../components/SalesView").then(m => ({ default: m.SalesView })));
+const FinanceView = React.lazy(() => import("../components/FinanceView").then(m => ({ default: m.FinanceView })));
+const InventoryView = React.lazy(() => import("../components/InventoryView").then(m => ({ default: m.InventoryView })));
+const CustomersView = React.lazy(() => import("../components/CustomersView").then(m => ({ default: m.CustomersView })));
+const PurchasesView = React.lazy(() => import("../components/PurchasesView").then(m => ({ default: m.PurchasesView })));
+const ExpensesView = React.lazy(() => import("../components/ExpensesView").then(m => ({ default: m.ExpensesView })));
+const TaxesView = React.lazy(() => import("../components/TaxesView").then(m => ({ default: m.TaxesView })));
 import { Button } from "@/components/ui/button";
 import { 
   BarChart3, LineChart, PieChart, Users, Package, 
@@ -96,10 +100,20 @@ export function ReportsDashboardPage() {
         
         {/* Global Filters */}
         <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
-          <Button variant="outline" size="sm" className="shadow-sm whitespace-nowrap">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="shadow-sm whitespace-nowrap"
+            onClick={() => toast.info("Filter applied: Last 12 Months")}
+          >
             <Calendar className="mr-2 h-4 w-4" /> Last 12 Months
           </Button>
-          <Button variant="outline" size="sm" className="shadow-sm whitespace-nowrap">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="shadow-sm whitespace-nowrap"
+            onClick={() => toast.info("Filter applied: Main Showroom (All Branches)")}
+          >
             <MapPin className="mr-2 h-4 w-4" /> All Branches
           </Button>
           <div className="w-px h-6 bg-border mx-2 hidden sm:block" />
@@ -115,20 +129,15 @@ export function ReportsDashboardPage() {
             className="flex h-9 items-center justify-between rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 w-[150px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
             <option value="">Export CSV...</option>
-            <option value="kpis">KPIs Summary</option>
-            <option value="revenue-trend">Revenue Trend</option>
-            <option value="sales-by-model">Sales by Model</option>
-            <option value="inventory-distribution">Inventory Distribution</option>
-            <option value="expense-categories">Expense Categories</option>
-            <option value="sales-executives">Sales Executives</option>
-            <option value="inventory-health">Inventory Health</option>
-            <option value="insights">Actionable Insights</option>
-            <option value="customer-acquisition">Customer Acquisition</option>
-            <option value="supplier-performance">Supplier Performance</option>
-            <option value="tax-register">GST & Taxes Register</option>
+            {REPORT_EXPORTS.map((r) => (
+              <option key={r.value} value={r.value}>{r.label}</option>
+            ))}
           </select>
 
-          <Button className="shadow-sm whitespace-nowrap bg-indigo-600 hover:bg-indigo-700">
+          <Button 
+            className="shadow-sm whitespace-nowrap bg-indigo-600 hover:bg-indigo-700"
+            onClick={() => window.print()}
+          >
             <Download className="mr-2 h-4 w-4" /> Export PDF
           </Button>
         </div>
@@ -138,7 +147,7 @@ export function ReportsDashboardPage() {
        <div className="flex flex-1 overflow-hidden">
         
         {/* Reports Left Navigation */}
-        <div className="w-64 border-r bg-muted/10 overflow-y-auto hidden md:block shrink-0">
+        <div className="w-64 border-r bg-muted/10 overflow-y-auto hidden md:block shrink-0 print:hidden">
           <div className="p-4 space-y-1">
             <p className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Dashboards</p>
             {navItems.slice(0, 4).map((item) => (
@@ -190,7 +199,9 @@ export function ReportsDashboardPage() {
         {/* Main Report Content Area */}
         <div className="flex-1 overflow-y-auto bg-background/50">
           <div className="p-6 md:p-8 max-w-7xl mx-auto">
-            {renderActiveView()}
+            <Suspense fallback={<SkeletonChart />}>
+              {renderActiveView()}
+            </Suspense>
           </div>
         </div>
 

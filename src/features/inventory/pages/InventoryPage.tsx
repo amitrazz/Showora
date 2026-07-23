@@ -1,14 +1,15 @@
 import { useInventory, useInventoryMetrics, useImportInventory } from "../hooks";
+import { SkeletonTable, SkeletonStatsCard } from "@/components/ui/skeleton/SkeletonTemplates";
 import { DataTable } from "@/components/common/DataTable";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatsCard } from "@/components/common/StatsCard";
-import { formatPaise } from "@/utils/formatters";
+import { formatCurrency } from "@/utils/formatters";
 import { ColumnDef } from "@tanstack/react-table";
-import { InventoryVehicle } from "../types";
+import { InventoryVehicle, InventoryListResponse } from "../types";
 import { Package, Plus, Download, Upload, Truck, Clock, AlertTriangle, ShieldCheck, IndianRupee, Eye, Pencil, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { EmptyState } from "@/components/common/EmptyState";
 import { useRef, useState } from "react";
 import { inventoryService } from "../services";
@@ -50,12 +51,12 @@ const inventoryColumns: ColumnDef<InventoryVehicle>[] = [
   {
     accessorKey: "purchaseCost",
     header: "Cost",
-    cell: ({ row }) => <span className="text-sm font-medium">{formatPaise(row.original.purchaseCost)}</span>,
+    cell: ({ row }) => <span className="text-sm font-medium">{formatCurrency(row.original.purchaseCost)}</span>,
   },
   {
     accessorKey: "sellingPrice",
     header: "Selling Price",
-    cell: ({ row }) => <span className="text-sm">{formatPaise(row.original.sellingPrice)}</span>,
+    cell: ({ row }) => <span className="text-sm">{formatCurrency(row.original.sellingPrice)}</span>,
   },
   {
     accessorKey: "location",
@@ -115,7 +116,11 @@ const inventoryColumns: ColumnDef<InventoryVehicle>[] = [
 ];
 
 export function InventoryPage() {
-  const { data: inventory, isLoading } = useInventory();
+  const navigate = useNavigate();
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [previousCursors, setPreviousCursors] = useState<string[]>([]);
+
+  const { data: inventoryResult, isLoading } = useInventory({ cursor, limit: 10 });
   const { data: metrics } = useInventoryMetrics();
   const importMutation = useImportInventory();
 
@@ -123,6 +128,28 @@ export function InventoryPage() {
   const [importErrors, setImportErrors] = useState<string[]>([]);
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+
+  const inventoryPage = Array.isArray(inventoryResult)
+    ? undefined
+    : (inventoryResult as InventoryListResponse);
+
+  const inventory = Array.isArray(inventoryResult)
+    ? inventoryResult
+    : (inventoryResult?.data ?? []);
+
+  const currentPageIndex = previousCursors.length;
+
+  const goToNextPage = () => {
+    if (!inventoryPage?.nextCursor) return;
+    setPreviousCursors((history) => [...history, cursor ?? ""]);
+    setCursor(inventoryPage.nextCursor);
+  };
+
+  const goToPreviousPage = () => {
+    const previousCursor = previousCursors[previousCursors.length - 1];
+    setPreviousCursors((history) => history.slice(0, -1));
+    setCursor(previousCursor || undefined);
+  };
 
   const handleExport = async () => {
     try {
@@ -170,16 +197,7 @@ export function InventoryPage() {
     });
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground animate-pulse">Loading workspace...</p>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="space-y-8 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -226,7 +244,7 @@ export function InventoryPage() {
         }
       />
 
-      {metrics && (
+      {metrics ? (
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
           <StatsCard
             title="Total Vehicles"
@@ -247,18 +265,40 @@ export function InventoryPage() {
           />
           <StatsCard
             title="Inventory Value"
-            value={formatPaise(metrics.inventoryValue)}
+            value={formatCurrency(metrics.inventoryValue)}
             icon={<IndianRupee className="h-4 w-4" />}
             className="bg-gradient-to-br from-card to-card/50"
           />
         </div>
+      ) : (
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          <SkeletonStatsCard />
+          <SkeletonStatsCard />
+          <SkeletonStatsCard />
+          <SkeletonStatsCard />
+        </div>
       )}
 
-      {inventory && inventory.length > 0 ? (
+      {isLoading ? (
+        <SkeletonTable />
+      ) : inventory && inventory.length > 0 ? (
         <DataTable
           columns={inventoryColumns}
           data={inventory}
           searchKey="vin"
+          serverPagination={
+            inventoryPage
+              ? {
+                  pageIndex: currentPageIndex,
+                  pageSize: inventoryPage.limit ?? 10,
+                  totalCount: inventoryPage.totalCount ?? 0,
+                  canPreviousPage: previousCursors.length > 0,
+                  canNextPage: inventoryPage.hasMore ?? false,
+                  onPreviousPage: goToPreviousPage,
+                  onNextPage: goToNextPage,
+                }
+              : undefined
+          }
         />
       ) : (
         <EmptyState
@@ -266,7 +306,7 @@ export function InventoryPage() {
           description="Get started by receiving your first vehicle into stock."
           icon={<Package />}
           actionLabel="Receive Inventory"
-          onAction={() => window.location.href = '/inventory/new'}
+          onAction={() => navigate({ to: '/inventory/new' })}
         />
       )}
 

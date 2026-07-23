@@ -1,11 +1,29 @@
-import { InventoryVehicle, InventoryMetrics } from './types';
+import { InventoryVehicle, InventoryMetrics, InventoryListOptions, InventoryListResponse } from './types';
 import { CreateInventoryWizardForm } from './schemas';
 import { api } from '@/lib/api';
 
 export const inventoryService = {
-  getInventory: async (): Promise<InventoryVehicle[]> => {
-    const response = await api.get<{ data: InventoryVehicle[] }>('/inventory');
-    return response.data.data;
+  getInventory: async (options: InventoryListOptions = {}): Promise<InventoryListResponse | InventoryVehicle[]> => {
+    const response = await api.get<any>('/inventory', {
+      params: {
+        ...(options.search ? { search: options.search } : {}),
+        limit: options.limit ?? 10,
+        ...(options.cursor ? { cursor: options.cursor } : {}),
+      },
+    });
+
+    if (response.data && Array.isArray(response.data.data)) {
+      return response.data;
+    }
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    return {
+      data: [],
+      hasMore: false,
+      limit: options.limit ?? 10,
+      totalCount: 0,
+    };
   },
 
   getInventoryVehicle: async (id: string): Promise<InventoryVehicle | undefined> => {

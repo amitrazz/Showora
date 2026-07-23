@@ -25,6 +25,7 @@ export const salesService = {
     const payload = {
       customerId: data.customer.customerId,
       inventoryId: data.vehicle.inventoryId,
+      reserveVehicle: data.vehicle.reserveVehicle,
       salesExecutive: data.delivery.executive || 'Current User',
       branch: 'Main Showroom',
       basePrice,
@@ -58,6 +59,7 @@ export const salesService = {
     const payload = {
       customerId: data.customer.customerId,
       inventoryId: data.vehicle.inventoryId,
+      reserveVehicle: data.vehicle.reserveVehicle,
       salesExecutive: data.delivery.executive || 'Current User',
       branch: 'Main Showroom',
       basePrice,

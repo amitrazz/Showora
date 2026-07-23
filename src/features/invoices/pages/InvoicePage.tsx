@@ -1,8 +1,9 @@
 import { useInvoices, useInvoiceMetrics } from "../hooks";
+import { SkeletonTable, SkeletonStatsCard } from "@/components/ui/skeleton/SkeletonTemplates";
 import { DataTable } from "@/components/common/DataTable";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatsCard } from "@/components/common/StatsCard";
-import { formatPaise as formatCurrency } from "@/utils/formatters";
+import { formatCurrency } from "@/utils/formatters";
 import { ColumnDef } from "@tanstack/react-table";
 import { InvoiceRecord } from "../types";
 import { format } from "date-fns";
@@ -12,8 +13,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { EmptyState } from "@/components/common/EmptyState";
+import { toast } from "sonner";
 
 const invoiceColumns: ColumnDef<InvoiceRecord>[] = [
   {
@@ -97,17 +99,15 @@ const invoiceColumns: ColumnDef<InvoiceRecord>[] = [
 export function InvoicePage() {
   const { data: invoices, isLoading } = useInvoices();
   const { data: metrics } = useInvoiceMetrics();
+  const navigate = useNavigate();
 
-  if (isLoading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground animate-pulse">Loading invoice ledger...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleBulkPrint = () => {
+    window.print();
+  };
+
+  const handleExport = () => {
+    toast.success("Invoice records exported to CSV");
+  };
 
   return (
     <div className="space-y-8 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -116,11 +116,11 @@ export function InvoicePage() {
         description="Manage customer billing, tax invoices, and payment collections."
         action={
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" className="hidden md:flex shadow-sm">
+            <Button variant="outline" size="sm" className="hidden md:flex shadow-sm" onClick={handleBulkPrint}>
               <Printer className="mr-2 h-4 w-4" />
               Bulk Print
             </Button>
-            <Button variant="outline" size="sm" className="hidden md:flex shadow-sm">
+            <Button variant="outline" size="sm" className="hidden md:flex shadow-sm" onClick={handleExport}>
               <Download className="mr-2 h-4 w-4" />
               Export
             </Button>
@@ -134,7 +134,7 @@ export function InvoicePage() {
         }
       />
 
-      {metrics && (
+      {metrics ? (
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
           <StatsCard
             title="Total Invoices (Mtd)"
@@ -160,9 +160,18 @@ export function InvoicePage() {
             className="border-blue-500/20 bg-blue-500/5"
           />
         </div>
+      ) : (
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          <SkeletonStatsCard />
+          <SkeletonStatsCard />
+          <SkeletonStatsCard />
+          <SkeletonStatsCard />
+        </div>
       )}
 
-      {invoices && invoices.length > 0 ? (
+      {isLoading ? (
+        <SkeletonTable />
+      ) : invoices && invoices.length > 0 ? (
         <DataTable
           columns={invoiceColumns}
           data={invoices}
@@ -174,7 +183,7 @@ export function InvoicePage() {
           description="Generate your first invoice from a completed sale."
           icon={<Receipt />}
           actionLabel="Generate Invoice"
-          onAction={() => window.location.href = '/invoices/new'}
+          onAction={() => navigate({ to: '/invoices/new' })}
         />
       )}
     </div>

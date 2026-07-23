@@ -1,16 +1,17 @@
 import { useCustomers, useCustomerMetrics, useImportCustomers } from "../hooks";
 import { useSales } from "../../sales/hooks";
+import { SkeletonTable, SkeletonStatsCard } from "@/components/ui/skeleton/SkeletonTemplates";
 import { DataTable } from "@/components/common/DataTable";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatsCard } from "@/components/common/StatsCard";
-import { formatPaise as formatCurrency } from "@/utils/formatters";
+import { formatCurrency } from "@/utils/formatters";
 import { ColumnDef } from "@tanstack/react-table";
 import { Customer } from "../types";
 import { Users, UserPlus, IndianRupee, HandCoins, Plus, Download, Upload, Eye, Pencil, X, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { EmptyState } from "@/components/common/EmptyState";
 import { useState, useRef } from "react";
 import { customerService } from "../services";
@@ -49,23 +50,32 @@ const customerColumns: ColumnDef<Customer>[] = [
     cell: ({ row }) => <span className="text-sm">{row.original.phone}</span>,
   },
   {
-    accessorKey: "address.city",
+    id: "city",
     header: "City",
-    cell: ({ row }) => <span className="text-sm">{row.original.address.city}</span>,
+    cell: ({ row }) => {
+      const city = row.original.address?.city || (row.original as any).addressCity || "N/A";
+      return <span className="text-sm">{city}</span>;
+    },
   },
   {
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => {
-      const status = row.original.status;
+      const rawStatus = (row.original.status || "").toLowerCase();
+      const validStatuses: Record<string, string> = {
+        active: "Active",
+        inactive: "Inactive",
+        lead: "Lead",
+      };
+      const displayStatus = validStatuses[rawStatus] || "Active";
       const variants: Record<string, string> = {
-        active: "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20",
-        inactive: "bg-muted text-muted-foreground hover:bg-muted/80",
-        lead: "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20",
+        Active: "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20",
+        Inactive: "bg-muted text-muted-foreground hover:bg-muted/80",
+        Lead: "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20",
       };
       return (
-        <Badge variant="outline" className={`border-transparent ${variants[status] || ""}`}>
-          {status.charAt(0).toUpperCase() + status.slice(1)}
+        <Badge variant="outline" className={`border-transparent ${variants[displayStatus]}`}>
+          {displayStatus}
         </Badge>
       );
     },
@@ -107,6 +117,7 @@ const customerColumns: ColumnDef<Customer>[] = [
 ];
 
 export function CustomersPage() {
+  const navigate = useNavigate();
   const [cursor, setCursor] = useState<string | undefined>();
   const [previousCursors, setPreviousCursors] = useState<(string | undefined)[]>([]);
   const { data: customerPage, isLoading } = useCustomers({ cursor, limit: 10 });
@@ -167,10 +178,20 @@ export function CustomersPage() {
 
   const rawCustomers = customerPage?.data ?? [];
   const customers = rawCustomers.map((customer) => {
-    const customerSales = salesList?.filter(sale => sale.customerId === customer.id) || [];
-    const totalPurchasesCount = customerSales.length || customer.totalPurchases || 0;
-    const computedLtv = customerSales.reduce((sum, sale) => sum + (sale.grandTotal || 0), 0) || customer.lifetimeValue || 0;
-    const computedOutstanding = customerSales.reduce((sum, sale) => sum + (sale.outstandingBalance || 0), 0) || customer.outstandingAmount || 0;
+    const fullName = `${customer.firstName} ${customer.lastName}`.trim().toLowerCase();
+    const customerSales = salesList?.filter(sale => 
+      sale.customerId === customer.id || 
+      (sale.customerName && sale.customerName.trim().toLowerCase() === fullName)
+    ) || [];
+    
+    const totalPurchasesCount = customerSales.length > 0 ? customerSales.length : (customer.totalPurchases || 0);
+    const computedLtv = customerSales.length > 0 
+      ? customerSales.reduce((sum, sale) => sum + (sale.grandTotal || 0), 0) 
+      : (customer.lifetimeValue || 0);
+    const computedOutstanding = customerSales.length > 0 
+      ? customerSales.reduce((sum, sale) => sum + (sale.outstandingBalance || 0), 0) 
+      : (customer.outstandingAmount || 0);
+
     return {
       ...customer,
       totalPurchases: totalPurchasesCount,
@@ -178,8 +199,13 @@ export function CustomersPage() {
       outstandingAmount: computedOutstanding,
     };
   });
-  const totalOutstandingSales = salesList?.reduce((sum, sale) => sum + (sale.outstandingBalance || 0), 0) ?? metrics?.outstandingAmount ?? 0;
-  const totalLtvRevenue = salesList?.reduce((sum, sale) => sum + (sale.grandTotal || 0), 0) ?? metrics?.totalRevenue ?? 0;
+
+  const totalOutstandingSales = metrics?.outstandingAmount !== undefined && metrics.outstandingAmount > 0
+    ? metrics.outstandingAmount
+    : (salesList?.reduce((sum, sale) => sum + (sale.outstandingBalance || 0), 0) ?? 0);
+  const totalLtvRevenue = metrics?.totalRevenue !== undefined && metrics.totalRevenue > 0
+    ? metrics.totalRevenue
+    : (salesList?.reduce((sum, sale) => sum + (sale.grandTotal || 0), 0) ?? 0);
   const currentPageIndex = previousCursors.length;
 
   const goToNextPage = () => {
@@ -194,16 +220,7 @@ export function CustomersPage() {
     setCursor(previousCursor);
   };
 
-  if (isLoading && !customerPage) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground animate-pulse">Loading customers...</p>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="space-y-8 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -250,7 +267,7 @@ export function CustomersPage() {
         }
       />
 
-      {metrics && (
+      {metrics ? (
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
           <StatsCard
             title="Total Customers"
@@ -275,9 +292,18 @@ export function CustomersPage() {
             className="bg-gradient-to-br from-card to-card/50"
           />
         </div>
+      ) : (
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          <SkeletonStatsCard />
+          <SkeletonStatsCard />
+          <SkeletonStatsCard />
+          <SkeletonStatsCard />
+        </div>
       )}
 
-      {customers.length > 0 ? (
+      {isLoading && !customerPage ? (
+        <SkeletonTable />
+      ) : customers.length > 0 ? (
         <DataTable
           columns={customerColumns}
           data={customers}
@@ -298,7 +324,7 @@ export function CustomersPage() {
           description="Get started by creating your first customer profile."
           icon={<Users />}
           actionLabel="Add Customer"
-          onAction={() => window.location.href = '/customers/new'}
+          onAction={() => navigate({ to: '/customers/new' })}
         />
       )}
 

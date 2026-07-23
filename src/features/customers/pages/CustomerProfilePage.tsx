@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useParams, Link } from "@tanstack/react-router";
+import { SkeletonProfilePage } from "@/components/ui/skeleton/SkeletonTemplates";
 import { useCustomer } from "../hooks";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatPaise as formatCurrency } from "@/utils/formatters";
+import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
 import { Edit, Mail, Phone, Plus, ShieldCheck, FileText, IndianRupee } from "lucide-react";
 import { OverviewTab } from "../components/profile/OverviewTab";
@@ -28,24 +29,26 @@ export function CustomerProfilePage() {
   const { data: salesList } = useSales();
 
   if (isLoading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground animate-pulse">Loading workspace...</p>
-        </div>
-      </div>
-    );
+    return <SkeletonProfilePage />;
   }
 
   if (!customer) {
     return <div className="p-8 text-center text-muted-foreground">Customer not found</div>;
   }
 
-  const customerSales = salesList?.filter(sale => sale.customerId === customer.id) || [];
-  const totalPurchasesCount = customerSales.length || customer.totalPurchases || 0;
-  const computedLtv = customerSales.reduce((sum, sale) => sum + (sale.grandTotal || 0), 0) || customer.lifetimeValue || 0;
-  const computedOutstanding = customerSales.reduce((sum, sale) => sum + (sale.outstandingBalance || 0), 0) || customer.outstandingAmount || 0;
+  const fullName = `${customer.firstName} ${customer.lastName}`.trim().toLowerCase();
+  const customerSales = salesList?.filter(sale => 
+    sale.customerId === customer.id || 
+    (sale.customerName && sale.customerName.trim().toLowerCase() === fullName)
+  ) || [];
+  
+  const totalPurchasesCount = customerSales.length > 0 ? customerSales.length : (customer.totalPurchases || 0);
+  const computedLtv = customerSales.length > 0 
+    ? customerSales.reduce((sum, sale) => sum + (sale.grandTotal || 0), 0) 
+    : (customer.lifetimeValue || 0);
+  const computedOutstanding = customerSales.length > 0 
+    ? customerSales.reduce((sum, sale) => sum + (sale.outstandingBalance || 0), 0) 
+    : (customer.outstandingAmount || 0);
 
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-500">

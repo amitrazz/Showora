@@ -4,10 +4,12 @@ import { CreateInventoryWizardForm } from './schemas';
 import { toast } from 'sonner';
 import { useNavigate } from '@tanstack/react-router';
 
-export const useInventory = () => {
+import { InventoryListOptions } from './types';
+
+export const useInventory = (options: InventoryListOptions = {}) => {
   return useQuery({
-    queryKey: ['inventory'],
-    queryFn: inventoryService.getInventory,
+    queryKey: ['inventory', options],
+    queryFn: () => inventoryService.getInventory(options),
   });
 };
 

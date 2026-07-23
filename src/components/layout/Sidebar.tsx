@@ -1,4 +1,4 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { useSidebarStore, useAuthStore } from "@/store";
 import { motion, AnimatePresence } from "framer-motion";
@@ -38,6 +38,7 @@ export function Sidebar() {
   const { user } = useAuthStore();
   const { data: generalSettings } = useGeneralSettings();
   const location = useLocation();
+  const navigate = useNavigate();
   const logoutMutation = useLogout();
 
   return (
@@ -59,7 +60,8 @@ export function Sidebar() {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
-                className="flex flex-col whitespace-nowrap"
+                className="flex flex-col whitespace-nowrap cursor-pointer"
+                onClick={() => navigate({ to: "/settings" })}
               >
                 <span className="text-sm font-bold leading-none">{generalSettings?.showroomName || "Showora"}</span>
                 <span className="text-xs text-muted-foreground">Free Plan</span>
@@ -71,7 +73,13 @@ export function Sidebar() {
         <AnimatePresence>
           {isOpen && (
              <motion.div initial={{opacity: 0}} animate={{opacity: 1}} exit={{opacity: 0}}>
-               <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0 ml-2">
+               <Button 
+                 variant="ghost" 
+                 size="icon" 
+                 className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0 ml-2"
+                 onClick={() => navigate({ to: "/settings" })}
+                 title="Showroom Settings"
+               >
                  <ChevronsUpDown className="h-4 w-4" />
                </Button>
              </motion.div>
