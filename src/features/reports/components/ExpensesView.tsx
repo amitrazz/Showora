@@ -1,5 +1,5 @@
 import { useReportMetrics, useExpenseCategories } from '../hooks';
-import { useExpenses } from '@/features/expenses/hooks';
+
 import { StatsCard } from '@/components/common/StatsCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ModernDonutChart } from './Charts';
@@ -10,8 +10,6 @@ import { SkeletonChart } from '@/components/ui/skeleton/SkeletonTemplates';
 export const ExpensesView = () => {
   const { data: metrics } = useReportMetrics();
   const { data: expensesData } = useExpenseCategories();
-  const { data: expensePage } = useExpenses();
-  const expenseList = expensePage?.data;
 
   if (!metrics) return <SkeletonChart />;
 
