@@ -10,7 +10,8 @@ import { SkeletonChart } from '@/components/ui/skeleton/SkeletonTemplates';
 export const ExpensesView = () => {
   const { data: metrics } = useReportMetrics();
   const { data: expensesData } = useExpenseCategories();
-  const { data: expenseList } = useExpenses();
+  const { data: expensePage } = useExpenses();
+  const expenseList = expensePage?.data;
 
   if (!metrics) return <SkeletonChart />;
 

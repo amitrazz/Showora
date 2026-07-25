@@ -22,7 +22,8 @@ export const OverviewView = () => {
   const { data: insights } = useInsights();
   const { data: salesResponse } = useSales();
   const salesList = salesResponse?.data;
-  const { data: expenseList } = useExpenses();
+  const { data: expensePage } = useExpenses();
+  const expenseList = expensePage?.data;
 
   if (!metrics || !trendData) return <SkeletonChart />;
 

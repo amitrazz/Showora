@@ -13,7 +13,8 @@ export const FinanceView = () => {
   const { data: expensesData } = useExpenseCategories();
   const { data: salesResponse } = useSales();
   const salesList = salesResponse?.data;
-  const { data: expenseList } = useExpenses();
+  const { data: expensePage } = useExpenses();
+  const expenseList = expensePage?.data;
 
   if (!metrics) return <SkeletonChart />;
 
