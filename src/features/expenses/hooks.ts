@@ -4,10 +4,12 @@ import { CreateExpenseWizardForm } from './schemas';
 import { toast } from 'sonner';
 import { useNavigate } from '@tanstack/react-router';
 
-export const useExpenses = () => {
+import { ExpenseListOptions } from './types';
+
+export const useExpenses = (options?: ExpenseListOptions) => {
   return useQuery({
-    queryKey: ['expenses'],
-    queryFn: expenseService.getExpenses,
+    queryKey: ['expenses', options],
+    queryFn: () => expenseService.getExpenses(options),
   });
 };
 

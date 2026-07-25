@@ -1,11 +1,30 @@
-import { ExpenseRecord, ExpenseMetrics } from './types';
+import { ExpenseRecord, ExpenseMetrics, ExpenseListOptions, ExpenseListResponse } from './types';
 import { CreateExpenseWizardForm } from './schemas';
 import { api } from '@/lib/api';
 
 export const expenseService = {
-  getExpenses: async (): Promise<ExpenseRecord[]> => {
-    const response = await api.get<{ data: ExpenseRecord[] }>('/expenses');
-    return response.data.data;
+  getExpenses: async (options: ExpenseListOptions = {}): Promise<ExpenseListResponse> => {
+    const response = await api.get<any>('/expenses', {
+      params: {
+        ...(options.search ? { search: options.search } : {}),
+        limit: options.limit ?? 10,
+        ...(options.cursor ? { cursor: options.cursor } : {}),
+      },
+    });
+
+    if (response.data && Array.isArray(response.data.data)) {
+      return response.data;
+    }
+    if (Array.isArray(response.data)) {
+      return {
+        data: response.data,
+        totalCount: response.data.length,
+        limit: options.limit ?? 10,
+        hasMore: false,
+        nextCursor: null,
+      };
+    }
+    return response.data;
   },
 
   getExpense: async (id: string): Promise<ExpenseRecord | undefined> => {

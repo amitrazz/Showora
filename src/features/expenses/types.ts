@@ -76,3 +76,17 @@ export interface SupportingDocument {
   type: string;
   size: number;
 }
+
+export interface ExpenseListOptions {
+  search?: string;
+  limit?: number;
+  cursor?: string;
+}
+
+export interface ExpenseListResponse {
+  data: ExpenseRecord[];
+  nextCursor?: string | null;
+  hasMore: boolean;
+  limit: number;
+  totalCount: number;
+}

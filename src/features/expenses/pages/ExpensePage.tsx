@@ -110,7 +110,10 @@ const expenseColumns: ColumnDef<ExpenseRecord>[] = [
 
 export function ExpensePage() {
   const navigate = useNavigate();
-  const { data: expenses, isLoading } = useExpenses();
+  const [cursor, setCursor] = useState<string | undefined>();
+  const [previousCursors, setPreviousCursors] = useState<(string | undefined)[]>([]);
+  const { data: expensePage, isLoading } = useExpenses({ cursor, limit: 10 });
+  const expenses = expensePage?.data ?? [];
   const { data: metrics } = useExpenseMetrics();
   const importMutation = useImportExpenses();
 
@@ -163,6 +166,20 @@ export function ExpensePage() {
         toast.dismiss(toastId);
       }
     });
+  };
+
+  const currentPageIndex = previousCursors.length;
+
+  const goToNextPage = () => {
+    if (!expensePage?.nextCursor) return;
+    setPreviousCursors((history) => [...history, cursor]);
+    setCursor(expensePage.nextCursor);
+  };
+
+  const goToPreviousPage = () => {
+    const previousCursor = previousCursors[previousCursors.length - 1];
+    setPreviousCursors((history) => history.slice(0, -1));
+    setCursor(previousCursor);
   };
 
 
@@ -264,6 +281,15 @@ export function ExpensePage() {
           columns={expenseColumns}
           data={expenses}
           searchKey="vendor"
+          serverPagination={{
+            pageIndex: currentPageIndex,
+            pageSize: expensePage?.limit ?? 10,
+            totalCount: expensePage?.totalCount ?? 0,
+            canPreviousPage: previousCursors.length > 0,
+            canNextPage: expensePage?.hasMore ?? false,
+            onPreviousPage: goToPreviousPage,
+            onNextPage: goToNextPage,
+          }}
         />
       ) : (
         <EmptyState
