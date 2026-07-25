@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, Link } from "@tanstack/react-router";
 import { SkeletonProfilePage } from "@/components/ui/skeleton/SkeletonTemplates";
-import { useCustomer, useCustomerSummary } from "../hooks";
+import { useCustomer } from "../hooks";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,6 @@ import { format } from "date-fns";
 import { Edit, Mail, Phone, Plus, ShieldCheck, FileText, IndianRupee } from "lucide-react";
 import { OverviewTab } from "../components/profile/OverviewTab";
 import { TimelineTab } from "../components/profile/TimelineTab";
-import { useSales } from "../../sales/hooks";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Check } from "lucide-react";
 
@@ -25,7 +24,6 @@ const tabs = [
 export function CustomerProfilePage() {
   const { customerId } = useParams({ strict: false });
   const { data: customer, isLoading } = useCustomer(customerId as string);
-  const { data: salesResponse } = useSales();
   const [activeTab, setActiveTab] = useState("overview");
 
   if (isLoading) {
@@ -36,7 +34,6 @@ export function CustomerProfilePage() {
     return <div className="p-8 text-center text-muted-foreground">Customer not found</div>;
   }
 
-  const customerSales = salesResponse?.data?.filter((s: any) => s.customerId === customer.id) || [];
   const totalPurchasesCount = customer.totalPurchases || 0;
   const computedLtv = customer.lifetimeValue || 0;
   const computedOutstanding = customer.outstandingAmount || 0;
