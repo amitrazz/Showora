@@ -36,8 +36,9 @@ export function SalesWorkspacePage() {
   const [referenceId, setReferenceId] = useState("");
 
   const recordPaymentMutation = useRecordSalesPayment(saleId as string);
-  const { data: invoices } = useInvoices();
-  const linkedInvoice = invoices?.find(inv => inv.saleId === sale?.id);
+  const { data: invoicesData } = useInvoices();
+  const invoices = invoicesData && !Array.isArray(invoicesData) ? invoicesData.data : (invoicesData ?? []);
+  const linkedInvoice = invoices?.find((inv: any) => inv.saleId === sale?.id);
 
   const openPaymentModal = () => {
     if (sale) {

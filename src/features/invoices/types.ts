@@ -85,3 +85,17 @@ export interface InvoiceMetrics {
   gstCollected: number;
   todaysBilling: number;
 }
+
+export interface InvoiceListOptions {
+  search?: string;
+  limit?: number;
+  cursor?: string;
+}
+
+export interface InvoiceListResponse {
+  data: InvoiceRecord[];
+  nextCursor?: string | null;
+  hasMore: boolean;
+  limit: number;
+  totalCount: number;
+}

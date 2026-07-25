@@ -3,11 +3,12 @@ import { invoiceService } from './services';
 import { CreateInvoiceWizardForm } from './schemas';
 import { toast } from 'sonner';
 import { useNavigate } from '@tanstack/react-router';
+import { InvoiceListOptions } from './types';
 
-export const useInvoices = () => {
+export const useInvoices = (options?: InvoiceListOptions) => {
   return useQuery({
-    queryKey: ['invoices'],
-    queryFn: invoiceService.getInvoices,
+    queryKey: ['invoices', options],
+    queryFn: () => invoiceService.getInvoices(options),
   });
 };
 

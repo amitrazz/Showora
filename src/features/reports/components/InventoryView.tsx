@@ -1,4 +1,4 @@
-import { useReportMetrics, useInventoryHealth, useInventoryDistribution } from '../hooks';
+import { useReportMetrics, useInventoryHealth, useInventoryDistribution, useInventoryKPI } from '../hooks';
 
 import { StatsCard } from '@/components/common/StatsCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,13 +11,14 @@ export const InventoryView = () => {
   const { data: metrics } = useReportMetrics();
   const { data: healthData } = useInventoryHealth();
   const { data: distData } = useInventoryDistribution();
+  const { data: inventoryKpi } = useInventoryKPI();
 
   if (!metrics) return <SkeletonChart />;
 
-  const totalValue = metrics.inventoryValue || 0;
+  const totalValue = inventoryKpi?.totalInventoryValue ?? (metrics.inventoryValue || 0);
 
-  const unitsAvailable = healthData?.reduce((sum, item) => sum + item.available, 0) ?? 65;
-  const unitsReserved = healthData?.reduce((sum, item) => sum + item.reserved, 0) ?? 20;
+  const unitsAvailable = inventoryKpi?.totalUnitsAvailable ?? 65;
+  const unitsReserved = inventoryKpi?.totalUnitsReserved ?? 20;
   const deadStock = 3; // Placeholder or add to backend later
 
   const activeHealthData = healthData || [];

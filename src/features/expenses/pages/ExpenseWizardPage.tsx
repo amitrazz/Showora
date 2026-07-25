@@ -51,21 +51,21 @@ export function ExpenseWizardPage() {
         category: expense.category ?? "Utilities",
         vendor: expense.vendor ?? "",
         description: expense.description ?? "",
-        branch: expense.branch ?? "Downtown Main Showroom",
+        branch: expense.branch || "Downtown Main Showroom",
         expenseDate: expense.expenseDate ? expense.expenseDate.split('T')[0] : new Date().toISOString().split('T')[0],
         isRecurring: expense.isRecurring ?? false,
-        recurringFrequency: expense.recurringFrequency,
+        recurringFrequency: expense.recurringFrequency || undefined,
       },
       amount: {
-        subtotal: (expense.subtotal ?? 0) / 100,
-        gstAmount: (expense.gstAmount ?? 0) / 100,
-        discount: (expense.discount ?? 0) / 100,
+        subtotal: expense.subtotal ?? 0,
+        gstAmount: expense.gstAmount ?? 0,
+        discount: expense.discount ?? 0,
       },
       payment: {
         dueDate: expense.dueDate ? expense.dueDate.split('T')[0] : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         method: (expense.payments?.[0]?.method as any) ?? "Bank Transfer",
-        paidAmount: (expense.paidAmount ?? 0) / 100,
-        referenceId: expense.payments?.[0]?.referenceId ?? "",
+        paidAmount: expense.paidAmount ?? 0,
+        referenceId: expense.payments?.[0]?.referenceId || undefined,
       },
     });
   }, [expense, reset]);
@@ -78,9 +78,15 @@ export function ExpenseWizardPage() {
   const outstanding = Math.max(0, totalAmount - paidAmount);
   
   const handleNext = async () => {
-    const stepIds = ["info", "amount", "payment", "attachments", "review"] as const;
-    const currentStepId = stepIds[currentStep];
-    const isStepValid = currentStepId === "review" || currentStepId === "attachments" ? true : await trigger(currentStepId as any);
+    let isStepValid = true;
+    
+    if (currentStep === 0) {
+      isStepValid = await trigger(["info.title", "info.category", "info.vendor", "info.branch", "info.expenseDate", "info.isRecurring", "info.recurringFrequency"] as any);
+    } else if (currentStep === 1) {
+      isStepValid = await trigger(["amount.subtotal", "amount.gstAmount", "amount.discount"] as any);
+    } else if (currentStep === 2) {
+      isStepValid = await trigger(["payment.dueDate", "payment.method", "payment.paidAmount", "payment.referenceId"] as any);
+    }
     
     if (isStepValid) {
       setCurrentStep(s => Math.min(s + 1, steps.length - 1));
@@ -184,10 +190,12 @@ export function ExpenseWizardPage() {
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Expense Date *</label>
                           <Input type="date" {...register("info.expenseDate")} className="bg-muted/50" />
+                          {errors.info?.expenseDate && <p className="text-xs text-destructive">{errors.info.expenseDate.message}</p>}
                         </div>
                         <div className="space-y-2">
-                          <label className="text-sm font-medium">Branch Location</label>
+                          <label className="text-sm font-medium">Branch Location *</label>
                           <Input {...register("info.branch")} className="bg-muted/50" />
+                          {errors.info?.branch && <p className="text-xs text-destructive">{errors.info.branch.message}</p>}
                         </div>
                         <div className="space-y-2 col-span-1 sm:col-span-2 border-t pt-4">
                            <div className="flex items-center gap-2">
@@ -224,10 +232,12 @@ export function ExpenseWizardPage() {
                         <div className="space-y-2">
                           <label className="text-sm font-medium">GST Amount (₹)</label>
                           <Input type="number" {...register("amount.gstAmount", { valueAsNumber: true })} className="bg-muted/50 font-mono" />
+                          {errors.amount?.gstAmount && <p className="text-xs text-destructive">{errors.amount.gstAmount.message}</p>}
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Discount (₹)</label>
                           <Input type="number" {...register("amount.discount", { valueAsNumber: true })} className="bg-muted/50 font-mono text-destructive" />
+                          {errors.amount?.discount && <p className="text-xs text-destructive">{errors.amount.discount.message}</p>}
                         </div>
                       </div>
                     </motion.div>
@@ -243,10 +253,12 @@ export function ExpenseWizardPage() {
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Due Date *</label>
                           <Input type="date" {...register("payment.dueDate")} className="bg-muted/50" />
+                          {errors.payment?.dueDate && <p className="text-xs text-destructive">{errors.payment.dueDate.message}</p>}
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Amount Already Paid (₹)</label>
                           <Input type="number" {...register("payment.paidAmount", { valueAsNumber: true })} className="bg-muted/50 font-mono text-lg" />
+                          {errors.payment?.paidAmount && <p className="text-xs text-destructive">{errors.payment.paidAmount.message}</p>}
                         </div>
                         {paidAmount > 0 && (
                           <>
@@ -257,10 +269,12 @@ export function ExpenseWizardPage() {
                                   <option key={m.value} value={m.value}>{m.label}</option>
                                 ))}
                               </select>
+                              {errors.payment?.method && <p className="text-xs text-destructive">{errors.payment.method.message}</p>}
                             </div>
                             <div className="space-y-2">
                               <label className="text-sm font-medium">Transaction Reference</label>
                               <Input {...register("payment.referenceId")} placeholder="e.g. UTR / Cheque No." className="bg-muted/50 font-mono" />
+                              {errors.payment?.referenceId && <p className="text-xs text-destructive">{errors.payment.referenceId.message}</p>}
                             </div>
                           </>
                         )}

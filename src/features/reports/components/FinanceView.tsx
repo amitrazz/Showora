@@ -1,6 +1,4 @@
 import { useReportMetrics, useExpenseCategories } from '../hooks';
-import { useSales } from '@/features/sales/hooks';
-import { useExpenses } from '@/features/expenses/hooks';
 import { StatsCard } from '@/components/common/StatsCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ModernDonutChart } from './Charts';
@@ -11,23 +9,15 @@ import { SkeletonChart } from '@/components/ui/skeleton/SkeletonTemplates';
 export const FinanceView = () => {
   const { data: metrics } = useReportMetrics();
   const { data: expensesData } = useExpenseCategories();
-  const { data: salesResponse } = useSales();
-  const salesList = salesResponse?.data;
-  const { data: expensePage } = useExpenses();
-  const expenseList = expensePage?.data;
 
   if (!metrics) return <SkeletonChart />;
 
-  const hasSales = salesList && salesList.length > 0;
-  const hasExpenses = expenseList && expenseList.length > 0;
+  const totalRev = metrics.revenue;
+  const totalExp = metrics.expenses;
+  const grossProfit = metrics.profit;
+  const netMargin = metrics.netProfitMargin;
 
-  const totalRev = hasSales ? salesList.reduce((sum, s) => sum + (s.grandTotal || 0), 0) : metrics.revenue;
-  const totalExp = hasExpenses ? expenseList.reduce((sum, e) => sum + (e.totalAmount || 0), 0) : metrics.expenses;
-  const grossProfit = hasSales ? salesList.reduce((sum, s) => sum + (s.profitMargin || (s.grandTotal - s.basePrice) || 0), 0) : metrics.profit;
-  const netProfitVal = grossProfit - totalExp;
-  const netMargin = totalRev > 0 ? Math.round((netProfitVal / totalRev) * 100) : metrics.netProfitMargin;
-
-  const outstandingPayablesables = hasSales ? salesList.reduce((sum, s) => sum + (s.outstandingBalance || 0), 0) : metrics.outstandingPayments;
+  const outstandingPayablesables = metrics.outstandingPayments;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">

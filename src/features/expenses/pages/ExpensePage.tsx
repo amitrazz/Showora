@@ -1,5 +1,5 @@
 import { useExpenses, useExpenseMetrics, useImportExpenses } from "../hooks";
-import { SkeletonTable, SkeletonStatsCard } from "@/components/ui/skeleton/SkeletonTemplates";
+import { SkeletonStatsCard } from "@/components/ui/skeleton/SkeletonTemplates";
 import { DataTable } from "@/components/common/DataTable";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatsCard } from "@/components/common/StatsCard";
@@ -112,7 +112,8 @@ export function ExpensePage() {
   const navigate = useNavigate();
   const [cursor, setCursor] = useState<string | undefined>();
   const [previousCursors, setPreviousCursors] = useState<(string | undefined)[]>([]);
-  const { data: expensePage, isLoading } = useExpenses({ cursor, limit: 10 });
+  const [search, setSearch] = useState("");
+  const { data: expensePage, isLoading } = useExpenses({ cursor, limit: 10, search });
   const expenses = expensePage?.data ?? [];
   const { data: metrics } = useExpenseMetrics();
   const importMutation = useImportExpenses();
@@ -274,13 +275,20 @@ export function ExpensePage() {
         </div>
       )}
 
-      {isLoading ? (
-        <SkeletonTable />
-      ) : expenses && expenses.length > 0 ? (
+      {(expenses.length > 0 || search || isLoading) ? (
         <DataTable
           columns={expenseColumns}
           data={expenses}
+          isLoading={isLoading}
           searchKey="vendor"
+          serverSearch={{
+            value: search,
+            onChange: (val) => {
+              setSearch(val);
+              setCursor(undefined);
+              setPreviousCursors([]);
+            },
+          }}
           serverPagination={{
             pageIndex: currentPageIndex,
             pageSize: expensePage?.limit ?? 10,

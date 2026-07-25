@@ -1,11 +1,30 @@
-import { PurchaseOrder, PurchaseMetrics } from './types';
+import { PurchaseOrder, PurchaseMetrics, PurchaseListOptions, PurchaseListResponse } from './types';
 import { CreatePurchaseWizardForm } from './schemas';
 import { api } from '@/lib/api';
 
 export const purchaseService = {
-  getPurchases: async (): Promise<PurchaseOrder[]> => {
-    const response = await api.get<{ data: PurchaseOrder[] }>('/purchases');
-    return response.data.data;
+  getPurchases: async (options: PurchaseListOptions = {}): Promise<PurchaseListResponse> => {
+    const response = await api.get<any>('/purchases', {
+      params: {
+        ...(options.search ? { search: options.search } : {}),
+        limit: options.limit ?? 10,
+        ...(options.cursor ? { cursor: options.cursor } : {}),
+      },
+    });
+
+    if (response.data && Array.isArray(response.data.data)) {
+      return response.data;
+    }
+    if (Array.isArray(response.data)) {
+      return {
+        data: response.data,
+        totalCount: response.data.length,
+        limit: options.limit ?? 10,
+        hasMore: false,
+        nextCursor: null,
+      };
+    }
+    return response.data;
   },
 
   getPurchase: async (id: string): Promise<PurchaseOrder | undefined> => {

@@ -1,5 +1,5 @@
 import { useInventory, useInventoryMetrics, useImportInventory } from "../hooks";
-import { SkeletonTable, SkeletonStatsCard } from "@/components/ui/skeleton/SkeletonTemplates";
+import { SkeletonStatsCard } from "@/components/ui/skeleton/SkeletonTemplates";
 import { DataTable } from "@/components/common/DataTable";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatsCard } from "@/components/common/StatsCard";
@@ -119,8 +119,9 @@ export function InventoryPage() {
   const navigate = useNavigate();
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [previousCursors, setPreviousCursors] = useState<string[]>([]);
+  const [search, setSearch] = useState("");
 
-  const { data: inventoryResult, isLoading } = useInventory({ cursor, limit: 10 });
+  const { data: inventoryResult, isLoading } = useInventory({ cursor, limit: 10, search });
   const { data: metrics } = useInventoryMetrics();
   const importMutation = useImportInventory();
 
@@ -279,13 +280,20 @@ export function InventoryPage() {
         </div>
       )}
 
-      {isLoading ? (
-        <SkeletonTable />
-      ) : inventory && inventory.length > 0 ? (
+      {(inventory.length > 0 || search || isLoading) ? (
         <DataTable
           columns={inventoryColumns}
           data={inventory}
+          isLoading={isLoading}
           searchKey="vin"
+          serverSearch={{
+            value: search,
+            onChange: (val) => {
+              setSearch(val);
+              setCursor(undefined);
+              setPreviousCursors([]);
+            },
+          }}
           serverPagination={
             inventoryPage
               ? {

@@ -1,11 +1,9 @@
-export const GST_RATE = 0.28; // 28% GST on bikes
-
-export function calculateGST(baseAmount: number): number {
-  return baseAmount * GST_RATE;
+export function calculateGST(baseAmount: number, gstRate: number): number {
+  return baseAmount * (gstRate / 100);
 }
 
-export function calculateTotalWithGST(baseAmount: number): number {
-  return baseAmount + calculateGST(baseAmount);
+export function calculateTotalWithGST(baseAmount: number, gstRate: number): number {
+  return baseAmount + calculateGST(baseAmount, gstRate);
 }
 
 export function calculateProfit(sellingPrice: number, costPrice: number): number {

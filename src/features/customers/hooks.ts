@@ -28,6 +28,21 @@ export const useCustomerMetrics = () => {
   });
 };
 
+export const useGlobalCustomerSummary = (options?: any) => {
+  return useQuery({
+    queryKey: ["customers", "summary", options],
+    queryFn: () => customerService.getSummary(options),
+  });
+};
+
+export const useCustomerSummary = (id: string) => {
+  return useQuery({
+    queryKey: ["customers", id, "summary"],
+    queryFn: () => customerService.getCustomerSummary(id),
+    enabled: !!id,
+  });
+};
+
 export const useCreateCustomer = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();

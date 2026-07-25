@@ -1,65 +1,23 @@
 import { useReportMetrics, useTaxRegister } from '../hooks';
-import { mockTaxRegister } from '../data';
-import { useSales } from '@/features/sales/hooks';
-import { usePurchases } from '@/features/purchases/hooks';
+
 import { StatsCard } from '@/components/common/StatsCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/utils/formatters';
 import { FileText, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
 import { SkeletonChart } from '@/components/ui/skeleton/SkeletonTemplates';
 
 export const TaxesView = () => {
   const { data: metrics } = useReportMetrics();
   const { data: taxData } = useTaxRegister();
-  const { data: salesResponse } = useSales();
-  const salesList = salesResponse?.data;
-  const { data: purchaseList } = usePurchases();
 
   if (!metrics) return <SkeletonChart />;
 
-  const hasSales = salesList && salesList.length > 0;
-  const hasPurchases = purchaseList && purchaseList.length > 0;
+  const totalGstCollected = metrics.gstCollected;
+  const totalGstPaid = metrics.gstPaid;
 
-  const totalGstCollected = hasSales
-    ? salesList.reduce((sum, s) => sum + (s.gstAmount || 0), 0)
-    : metrics.gstCollected;
-
-  const totalGstPaid = hasPurchases
-    ? purchaseList.reduce((sum, p) => sum + (p.gstAmount || 0), 0)
-    : metrics.gstPaid;
-
-  // Compute monthly GST register dynamically
-  const monthlyGstMap = new Map<string, { month: string; collected: number; paid: number; liability: number; status: string }>();
-
-  if (hasSales) {
-    salesList.forEach((s) => {
-      const dateVal = s.saleDate ? new Date(s.saleDate) : new Date();
-      const monthStr = format(dateVal, 'MMM yyyy');
-      const existing = monthlyGstMap.get(monthStr) || { month: monthStr, collected: 0, paid: 0, liability: 0, status: 'Calculated' };
-      existing.collected += (s.gstAmount || 0);
-      existing.liability = existing.collected - existing.paid;
-      monthlyGstMap.set(monthStr, existing);
-    });
-  }
-
-  if (hasPurchases) {
-    purchaseList.forEach((p) => {
-      const dateVal = p.orderDate ? new Date(p.orderDate) : new Date();
-      const monthStr = format(dateVal, 'MMM yyyy');
-      const existing = monthlyGstMap.get(monthStr) || { month: monthStr, collected: 0, paid: 0, liability: 0, status: 'Calculated' };
-      existing.paid += (p.gstAmount || 0);
-      existing.liability = existing.collected - existing.paid;
-      monthlyGstMap.set(monthStr, existing);
-    });
-  }
-
-  const computedTaxRows = Array.from(monthlyGstMap.values());
-  const activeTaxRows = computedTaxRows.length > 0
-    ? computedTaxRows
-    : ((taxData && taxData.length > 0) ? taxData : mockTaxRegister);
+  const activeTaxRows = taxData || [];
 
   const handleDownloadGstr3b = () => {
     const toastId = toast.loading('Generating GSTR-3B Tax Return export...');

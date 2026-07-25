@@ -24,6 +24,17 @@ export const customerService = {
     return response.data;
   },
 
+
+  getSummary: async (options?: any): Promise<{ totalCustomers: number, totalOutstandingAmount: number, totalLifetimeValue: number }> => {
+    const response = await api.get('/customers/summary', { params: options });
+    return response.data;
+  },
+
+  getCustomerSummary: async (id: string): Promise<{ customerId: string, totalSalesAmount: number, totalOutstandingBalance: number, totalPaidAmount: number }> => {
+    const response = await api.get(`/customers/${id}/summary`);
+    return response.data;
+  },
+
   createCustomer: async (data: CreateCustomerWizardForm): Promise<Customer> => {
     const response = await api.post<Customer>('/customers', data);
     return response.data;

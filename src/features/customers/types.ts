@@ -125,3 +125,16 @@ export interface CustomerListOptions {
   limit?: number;
   cursor?: string;
 }
+
+export interface CustomerGlobalSummary {
+  totalCustomers: number;
+  totalOutstandingAmount: number;
+  totalLifetimeValue: number;
+}
+
+export interface CustomerIndividualSummary {
+  customerId: string;
+  totalSalesAmount: number;
+  totalOutstandingBalance: number;
+  totalPaidAmount: number;
+}

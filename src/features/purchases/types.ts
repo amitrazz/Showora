@@ -88,3 +88,17 @@ export interface PurchaseMetrics {
   averageProcurementCost: number;
   activeSuppliers: number;
 }
+
+export interface PurchaseListOptions {
+  search?: string;
+  limit?: number;
+  cursor?: string;
+}
+
+export interface PurchaseListResponse {
+  data: PurchaseOrder[];
+  nextCursor?: string | null;
+  hasMore: boolean;
+  limit: number;
+  totalCount: number;
+}

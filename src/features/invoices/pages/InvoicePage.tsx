@@ -1,5 +1,5 @@
 import { useInvoices, useInvoiceMetrics } from "../hooks";
-import { SkeletonTable, SkeletonStatsCard } from "@/components/ui/skeleton/SkeletonTemplates";
+import { SkeletonStatsCard } from "@/components/ui/skeleton/SkeletonTemplates";
 import { DataTable } from "@/components/common/DataTable";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatsCard } from "@/components/common/StatsCard";
@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { EmptyState } from "@/components/common/EmptyState";
 import { toast } from "sonner";
+import { useState } from "react";
 
 const invoiceColumns: ColumnDef<InvoiceRecord>[] = [
   {
@@ -97,7 +98,30 @@ const invoiceColumns: ColumnDef<InvoiceRecord>[] = [
 ];
 
 export function InvoicePage() {
-  const { data: invoices, isLoading } = useInvoices();
+  const [cursor, setCursor] = useState<string | undefined>();
+  const [previousCursors, setPreviousCursors] = useState<(string | undefined)[]>([]);
+  const [search, setSearch] = useState("");
+  const { data: invoiceResult, isLoading } = useInvoices({ cursor, limit: 10, search });
+
+  const invoicePage = invoiceResult && !Array.isArray(invoiceResult) ? invoiceResult : null;
+  const invoices = Array.isArray(invoiceResult)
+    ? invoiceResult
+    : (invoiceResult?.data ?? []);
+
+  const currentPageIndex = previousCursors.length;
+
+  const goToNextPage = () => {
+    if (!invoicePage?.nextCursor) return;
+    setPreviousCursors((history) => [...history, cursor]);
+    setCursor(invoicePage.nextCursor);
+  };
+
+  const goToPreviousPage = () => {
+    const previousCursor = previousCursors[previousCursors.length - 1];
+    setPreviousCursors((history) => history.slice(0, -1));
+    setCursor(previousCursor);
+  };
+
   const { data: metrics } = useInvoiceMetrics();
   const navigate = useNavigate();
 
@@ -169,13 +193,33 @@ export function InvoicePage() {
         </div>
       )}
 
-      {isLoading ? (
-        <SkeletonTable />
-      ) : invoices && invoices.length > 0 ? (
+      {(invoices.length > 0 || search || isLoading) ? (
         <DataTable
           columns={invoiceColumns}
           data={invoices}
+          isLoading={isLoading}
           searchKey="invoiceNumber"
+          serverSearch={{
+            value: search,
+            onChange: (val) => {
+              setSearch(val);
+              setCursor(undefined);
+              setPreviousCursors([]);
+            },
+          }}
+          serverPagination={
+            invoicePage
+              ? {
+                  pageIndex: currentPageIndex,
+                  pageSize: invoicePage.limit ?? 10,
+                  totalCount: invoicePage.totalCount ?? 0,
+                  canPreviousPage: previousCursors.length > 0,
+                  canNextPage: invoicePage.hasMore ?? false,
+                  onPreviousPage: goToPreviousPage,
+                  onNextPage: goToNextPage,
+                }
+              : undefined
+          }
         />
       ) : (
         <EmptyState

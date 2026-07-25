@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, Link } from "@tanstack/react-router";
 import { SkeletonProfilePage } from "@/components/ui/skeleton/SkeletonTemplates";
-import { useCustomer } from "../hooks";
+import { useCustomer, useCustomerSummary } from "../hooks";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,9 +25,9 @@ const tabs = [
 export function CustomerProfilePage() {
   const { customerId } = useParams({ strict: false });
   const { data: customer, isLoading } = useCustomer(customerId as string);
-  const [activeTab, setActiveTab] = useState("overview");
+  const { data: summary } = useCustomerSummary(customerId as string);
   const { data: salesResponse } = useSales();
-  const salesList = salesResponse?.data;
+  const [activeTab, setActiveTab] = useState("overview");
 
   if (isLoading) {
     return <SkeletonProfilePage />;
@@ -37,19 +37,10 @@ export function CustomerProfilePage() {
     return <div className="p-8 text-center text-muted-foreground">Customer not found</div>;
   }
 
-  const fullName = `${customer.firstName} ${customer.lastName}`.trim().toLowerCase();
-  const customerSales = salesList?.filter(sale => 
-    sale.customerId === customer.id || 
-    (sale.customerName && sale.customerName.trim().toLowerCase() === fullName)
-  ) || [];
-  
+  const customerSales = salesResponse?.data?.filter((s: any) => s.customerId === customer.id) || [];
   const totalPurchasesCount = customerSales.length > 0 ? customerSales.length : (customer.totalPurchases || 0);
-  const computedLtv = customerSales.length > 0 
-    ? customerSales.reduce((sum, sale) => sum + (sale.grandTotal || 0), 0) 
-    : (customer.lifetimeValue || 0);
-  const computedOutstanding = customerSales.length > 0 
-    ? customerSales.reduce((sum, sale) => sum + (sale.outstandingBalance || 0), 0) 
-    : (customer.outstandingAmount || 0);
+  const computedLtv = summary?.totalSalesAmount ?? (customer.lifetimeValue || 0);
+  const computedOutstanding = summary?.totalOutstandingBalance ?? (customer.outstandingAmount || 0);
 
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-500">
@@ -153,7 +144,7 @@ export function CustomerProfilePage() {
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
-                {customerSales.map((sale) => (
+                {customerSales.map((sale: any) => (
                   <Card key={sale.id} className="shadow-sm border-border/50 bg-card hover:bg-muted/10 transition-colors">
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-start">
@@ -201,7 +192,7 @@ export function CustomerProfilePage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {customerSales.flatMap(s => (s.payments || []).map(p => ({ ...p, vehicleName: `${s.vehicleMake} ${s.vehicleModel}`, saleId: s.id }))).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((payment) => (
+                {customerSales.flatMap((s: any) => (s.payments || []).map((p: any) => ({ ...p, vehicleName: `${s.vehicleMake} ${s.vehicleModel}`, saleId: s.id }))).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((payment: any) => (
                   <div key={payment.id} className="flex justify-between items-center p-4 rounded-xl border border-border/50 bg-card hover:bg-muted/40 transition-colors">
                     <div className="flex items-center gap-4">
                       <div className="h-10 w-10 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center">

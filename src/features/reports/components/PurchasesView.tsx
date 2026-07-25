@@ -1,5 +1,5 @@
 import { useReportMetrics, useSupplierPerformance } from '../hooks';
-import { usePurchases, usePurchaseMetrics } from '@/features/purchases/hooks';
+import { usePurchaseMetrics } from '@/features/purchases/hooks';
 import { StatsCard } from '@/components/common/StatsCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SalesBarChart } from './Charts';
@@ -10,34 +10,15 @@ import { SkeletonChart } from '@/components/ui/skeleton/SkeletonTemplates';
 export const PurchasesView = () => {
   const { data: metrics } = useReportMetrics();
   const { data: supplierData } = useSupplierPerformance();
-  const { data: purchaseList } = usePurchases();
   const { data: purchaseMetrics } = usePurchaseMetrics();
 
   if (!metrics) return <SkeletonChart />;
 
-  const hasPurchases = purchaseList && purchaseList.length > 0;
+  const totalPurchaseVal = purchaseMetrics?.totalPurchaseValue || 12000000;
+  const pendingCount = purchaseMetrics?.pendingDeliveries !== undefined ? purchaseMetrics.pendingDeliveries : 14;
+  const activeSupplierCount = purchaseMetrics?.activeSuppliers || 8;
 
-  const totalPurchaseVal = purchaseMetrics?.totalPurchaseValue
-    || (hasPurchases ? purchaseList.reduce((sum, p) => sum + (p.grandTotal || 0), 0) : 12000000);
-
-  const pendingCount = purchaseMetrics?.pendingDeliveries !== undefined
-    ? purchaseMetrics.pendingDeliveries
-    : (hasPurchases ? purchaseList.filter(p => p.status === 'Ordered' || p.status === 'Partially Received').length : 14);
-
-  const activeSupplierCount = purchaseMetrics?.activeSuppliers
-    || (hasPurchases ? new Set(purchaseList.map(p => p.supplierName)).size : 8);
-
-  // Compute live supplier performance bar chart data
-  const supplierMap = new Map<string, number>();
-  if (hasPurchases) {
-    purchaseList.forEach(p => {
-      const sName = p.supplierName || 'Other';
-      supplierMap.set(sName, (supplierMap.get(sName) || 0) + (p.grandTotal || 0));
-    });
-  }
-
-  const computedSupplierData = Array.from(supplierMap.entries()).map(([name, value]) => ({ name, value }));
-  const activeSupplierData = computedSupplierData.length > 0 ? computedSupplierData : (supplierData || []);
+  const activeSupplierData = supplierData || [];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">

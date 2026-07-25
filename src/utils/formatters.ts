@@ -9,10 +9,6 @@ export function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
-/** Use this when the value comes directly from the API/DB and is stored in paise (minor units) */
-export function formatPaise(amountInPaise: number): string {
-  return formatCurrency(amountInPaise / 100);
-}
 
 export function formatDate(date: string | Date, formatStr: string = 'dd MMM, yyyy'): string {
   if (!date) return '';

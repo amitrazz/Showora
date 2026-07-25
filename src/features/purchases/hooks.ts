@@ -3,11 +3,12 @@ import { purchaseService } from './services';
 import { CreatePurchaseWizardForm } from './schemas';
 import { toast } from 'sonner';
 import { useNavigate } from '@tanstack/react-router';
+import { PurchaseListOptions } from './types';
 
-export const usePurchases = () => {
+export const usePurchases = (options?: PurchaseListOptions) => {
   return useQuery({
-    queryKey: ['purchases'],
-    queryFn: purchaseService.getPurchases,
+    queryKey: ['purchases', options],
+    queryFn: () => purchaseService.getPurchases(options),
   });
 };
 

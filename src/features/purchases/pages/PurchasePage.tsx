@@ -1,5 +1,5 @@
 import { usePurchases, usePurchaseMetrics } from "../hooks";
-import { SkeletonTable, SkeletonStatsCard } from "@/components/ui/skeleton/SkeletonTemplates";
+import { SkeletonStatsCard } from "@/components/ui/skeleton/SkeletonTemplates";
 import { DataTable } from "@/components/common/DataTable";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatsCard } from "@/components/common/StatsCard";
@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { EmptyState } from "@/components/common/EmptyState";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 const purchaseColumns: ColumnDef<PurchaseOrder>[] = [
@@ -115,7 +115,30 @@ const purchaseColumns: ColumnDef<PurchaseOrder>[] = [
 ];
 
 export function PurchasePage() {
-  const { data: purchases, isLoading } = usePurchases();
+  const [cursor, setCursor] = useState<string | undefined>();
+  const [previousCursors, setPreviousCursors] = useState<(string | undefined)[]>([]);
+  const [search, setSearch] = useState("");
+  const { data: purchaseResult, isLoading } = usePurchases({ cursor, limit: 10, search });
+
+  const purchasePage = purchaseResult && !Array.isArray(purchaseResult) ? purchaseResult : null;
+  const purchases = Array.isArray(purchaseResult)
+    ? purchaseResult
+    : (purchaseResult?.data ?? []);
+
+  const currentPageIndex = previousCursors.length;
+
+  const goToNextPage = () => {
+    if (!purchasePage?.nextCursor) return;
+    setPreviousCursors((history) => [...history, cursor]);
+    setCursor(purchasePage.nextCursor);
+  };
+
+  const goToPreviousPage = () => {
+    const previousCursor = previousCursors[previousCursors.length - 1];
+    setPreviousCursors((history) => history.slice(0, -1));
+    setCursor(previousCursor);
+  };
+
   const { data: metrics } = usePurchaseMetrics();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -197,13 +220,33 @@ export function PurchasePage() {
         </div>
       )}
 
-      {isLoading ? (
-        <SkeletonTable />
-      ) : purchases && purchases.length > 0 ? (
+      {(purchases.length > 0 || search || isLoading) ? (
         <DataTable
           columns={purchaseColumns}
           data={purchases}
+          isLoading={isLoading}
           searchKey="poNumber"
+          serverSearch={{
+            value: search,
+            onChange: (val) => {
+              setSearch(val);
+              setCursor(undefined);
+              setPreviousCursors([]);
+            },
+          }}
+          serverPagination={
+            purchasePage
+              ? {
+                  pageIndex: currentPageIndex,
+                  pageSize: purchasePage.limit ?? 10,
+                  totalCount: purchasePage.totalCount ?? 0,
+                  canPreviousPage: previousCursors.length > 0,
+                  canNextPage: purchasePage.hasMore ?? false,
+                  onPreviousPage: goToPreviousPage,
+                  onNextPage: goToNextPage,
+                }
+              : undefined
+          }
         />
       ) : (
         <EmptyState

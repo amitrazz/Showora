@@ -17,18 +17,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton/Skeleton";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   searchKey?: string; // column key to filter globally, e.g., "name" or "customerName"
   pageSize?: number;
+  isLoading?: boolean;
   serverPagination?: {
     pageIndex: number;
     pageSize: number;
@@ -38,6 +40,10 @@ interface DataTableProps<TData, TValue> {
     onPreviousPage: () => void;
     onNextPage: () => void;
   };
+  serverSearch?: {
+    value: string;
+    onChange: (value: string) => void;
+  };
 }
 
 export function DataTable<TData, TValue>({
@@ -45,7 +51,9 @@ export function DataTable<TData, TValue>({
   data,
   searchKey,
   pageSize = 10,
+  isLoading,
   serverPagination,
+  serverSearch,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -54,6 +62,16 @@ export function DataTable<TData, TValue>({
     pageIndex: 0,
     pageSize,
   });
+
+  const [localSearch, setLocalSearch] = useState(serverSearch?.value ?? globalFilter ?? "");
+  const lastPropagatedValue = useRef(serverSearch?.value ?? "");
+
+  useEffect(() => {
+    if (serverSearch?.value !== undefined && serverSearch.value !== lastPropagatedValue.current) {
+      setLocalSearch(serverSearch.value);
+      lastPropagatedValue.current = serverSearch.value;
+    }
+  }, [serverSearch?.value]);
 
   const table = useReactTable({
     data,
@@ -73,6 +91,37 @@ export function DataTable<TData, TValue>({
       pagination,
     },
   });
+
+  const onChangeRef = useRef(serverSearch?.onChange);
+  useEffect(() => {
+    onChangeRef.current = serverSearch?.onChange;
+  }, [serverSearch?.onChange]);
+
+  const tableRef = useRef(table);
+  useEffect(() => {
+    tableRef.current = table;
+  });
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      console.log("[DataTable] Debounce timeout fired. localSearch:", JSON.stringify(localSearch), "serverSearch.value:", JSON.stringify(serverSearch?.value));
+      if (serverSearch) {
+        if (localSearch !== serverSearch.value) {
+          console.log("[DataTable] Query changed. Invoking serverSearch.onChange with:", JSON.stringify(localSearch));
+          lastPropagatedValue.current = localSearch;
+          onChangeRef.current?.(localSearch);
+        } else {
+          console.log("[DataTable] localSearch matches serverSearch.value. Skipping parent update.");
+        }
+      } else {
+        console.log("[DataTable] No serverSearch. Running client-side setGlobalFilter with:", JSON.stringify(localSearch));
+        setGlobalFilter(localSearch);
+        tableRef.current.setPageIndex(0);
+      }
+    }, 400);
+
+    return () => clearTimeout(handler);
+  }, [localSearch, serverSearch?.value]);
 
   const selectedCount = Object.keys(rowSelection).length;
   const filteredRowCount = serverPagination?.totalCount ?? table.getFilteredRowModel().rows.length;
@@ -124,10 +173,9 @@ export function DataTable<TData, TValue>({
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search..."
-              value={globalFilter ?? ""}
+              value={localSearch}
               onChange={(event) => {
-                setGlobalFilter(String(event.target.value));
-                table.setPageIndex(0);
+                setLocalSearch(event.target.value);
               }}
               className="pl-9 bg-background/50 backdrop-blur-sm"
             />
@@ -157,7 +205,17 @@ export function DataTable<TData, TValue>({
               ))}
             </TableHeader>
             <TableBody>
-              {table.getRowModel().rows?.length ? (
+              {isLoading ? (
+                Array.from({ length: Math.min(pageSize, 10) }).map((_, r) => (
+                  <TableRow key={r} className="border-b-border/40">
+                    {columns.map((_, c) => (
+                      <TableCell key={c} className="py-4">
+                        <Skeleton className="h-4 w-3/4 rounded bg-muted/60" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}

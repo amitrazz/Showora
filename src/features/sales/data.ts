@@ -46,7 +46,7 @@ export const mockSales: SalesRecord[] = Array.from({ length: 100 }).map((_, i) =
   
   const usesFinance = Math.random() > 0.6;
   const totalPaid = isDelivered ? grandTotal : (usesFinance ? getRandomNum(10000, 50000) : getRandomNum(10000, grandTotal - 10000));
-  const outstandingBalance = Math.max(0, grandTotal - totalPaid);
+  const outstandingBalance = ['Cancelled', 'Draft', 'Quotation'].includes(status) ? 0 : Math.max(0, grandTotal - totalPaid);
   
   // Approximate simulated profit (Markup minus discount)
   const profitMargin = Math.round((basePrice * 0.15) + (accessoriesPrice * 0.30) - discount);

@@ -5,8 +5,6 @@ import {
   useInventoryDistribution,
   useInsights 
 } from '../hooks';
-import { useSales } from '@/features/sales/hooks';
-import { useExpenses } from '@/features/expenses/hooks';
 import { StatsCard } from '@/components/common/StatsCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RevenueAreaChart, SalesBarChart, ModernDonutChart } from './Charts';
@@ -20,33 +18,16 @@ export const OverviewView = () => {
   const { data: salesData } = useSalesByModel();
   const { data: inventoryData } = useInventoryDistribution();
   const { data: insights } = useInsights();
-  const { data: salesResponse } = useSales();
-  const salesList = salesResponse?.data;
-  const { data: expensePage } = useExpenses();
-  const expenseList = expensePage?.data;
 
   if (!metrics || !trendData) return <SkeletonChart />;
 
-  const hasSales = salesList && salesList.length > 0;
-  const hasExpenses = expenseList && expenseList.length > 0;
-
-  const totalRev = hasSales ? salesList.reduce((sum, s) => sum + (s.grandTotal || 0), 0) : metrics.revenue;
-  const totalExp = hasExpenses ? expenseList.reduce((sum, e) => sum + (e.totalAmount || 0), 0) : metrics.expenses;
-  const grossProfit = hasSales ? salesList.reduce((sum, s) => sum + (s.profitMargin || (s.grandTotal - s.basePrice) || 0), 0) : metrics.profit;
+  const totalRev = metrics.revenue;
+  const totalExp = metrics.expenses;
+  const grossProfit = metrics.profit;
   const netProfit = grossProfit - totalExp;
-  const unitsSold = hasSales ? salesList.length : metrics.unitsSold;
+  const unitsSold = metrics.unitsSold;
 
-  // Dynamic Top Selling Models bar chart
-  const modelMap = new Map<string, number>();
-  if (hasSales) {
-    salesList.forEach(s => {
-      const modelName = s.vehicleModel || `${s.vehicleMake || ''} ${s.vehicleModel || 'Model'}`.trim();
-      modelMap.set(modelName, (modelMap.get(modelName) || 0) + 1);
-    });
-  }
-
-  const computedSalesData = Array.from(modelMap.entries()).map(([name, value]) => ({ name, value }));
-  const activeSalesData = computedSalesData.length > 0 ? computedSalesData : (salesData || []);
+  const activeSalesData = salesData || [];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">

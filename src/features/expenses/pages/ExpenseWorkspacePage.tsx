@@ -47,7 +47,7 @@ export function ExpenseWorkspacePage() {
 
   const openPaymentModal = () => {
     if (expense) {
-      setPaymentAmount(expense.outstandingAmount.toString());
+      setPaymentAmount((expense.outstandingAmount).toString());
       setPaymentMethod("Bank Transfer");
       setReferenceId("");
       setIsPaymentModalOpen(true);
@@ -525,7 +525,7 @@ export function ExpenseWorkspacePage() {
                     type="number"
                     step="0.01"
                     min="0.01"
-                    max={expense?.outstandingAmount}
+                    max={expense ? expense.outstandingAmount : undefined}
                     value={paymentAmount}
                     onChange={(e) => setPaymentAmount(e.target.value)}
                     className="bg-muted/50 font-mono text-base"

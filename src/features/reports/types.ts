@@ -61,3 +61,10 @@ export interface FilterState {
   brand: string;
   salesExecutive: string;
 }
+
+export interface InventoryKPI {
+  totalUnitsAvailable: number;
+  totalUnitsReserved: number;
+  totalUnitsInTransit: number;
+  totalInventoryValue: number;
+}

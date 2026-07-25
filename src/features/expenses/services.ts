@@ -47,12 +47,12 @@ export const expenseService = {
       expenseDate: data.info.expenseDate,
       isRecurring: data.info.isRecurring,
       recurringFrequency: data.info.recurringFrequency,
-      subtotal: data.amount.subtotal,
-      gstAmount: data.amount.gstAmount,
-      discount: data.amount.discount,
+      subtotal: data.amount.subtotal || 0,
+      gstAmount: data.amount.gstAmount || 0,
+      discount: data.amount.discount || 0,
       dueDate: data.payment.dueDate,
       paymentMethod: data.payment.method,
-      paidAmount: data.payment.paidAmount,
+      paidAmount: data.payment.paidAmount || 0,
       referenceId: data.payment.referenceId || 'N/A'
     };
 
@@ -70,12 +70,12 @@ export const expenseService = {
       expenseDate: data.info.expenseDate,
       isRecurring: data.info.isRecurring,
       recurringFrequency: data.info.recurringFrequency,
-      subtotal: data.amount.subtotal,
-      gstAmount: data.amount.gstAmount,
-      discount: data.amount.discount,
+      subtotal: data.amount.subtotal || 0,
+      gstAmount: data.amount.gstAmount || 0,
+      discount: data.amount.discount || 0,
       dueDate: data.payment.dueDate,
       paymentMethod: data.payment.method,
-      paidAmount: data.payment.paidAmount,
+      paidAmount: data.payment.paidAmount || 0,
       referenceId: data.payment.referenceId || 'N/A'
     };
 
@@ -84,7 +84,11 @@ export const expenseService = {
   },
 
   recordPayment: async (id: string, data: { amount: number; method: string; referenceId: string }): Promise<void> => {
-    await api.post(`/expenses/${id}/payments`, data);
+    const payload = {
+      ...data,
+      amount: data.amount,
+    };
+    await api.post(`/expenses/${id}/payments`, payload);
   },
 
   exportExpenses: async (): Promise<Blob> => {

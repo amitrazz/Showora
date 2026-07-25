@@ -5,33 +5,44 @@ import {
   SalesByExecutive, 
   InventoryHealthData,
   InsightCard,
-  FilterState
+  FilterState,
+  InventoryKPI
 } from './types';
 import { api } from '@/lib/api';
 
 export const reportService = {
   getKPIMetrics: async (filters?: FilterState): Promise<KPIMetrics> => {
-    const response = await api.get<KPIMetrics>('/reports/kpis', { params: filters });
+    const response = await api.get<KPIMetrics>('/reports/kpi', { params: filters });
+    return response.data;
+  },
+
+  getSalesLeaderboard: async (filters?: FilterState): Promise<{ leaderboard: any[] }> => {
+    const response = await api.get('/reports/sales/leaderboard', { params: filters });
+    return response.data;
+  },
+
+  getInventoryKpi: async (filters?: FilterState): Promise<any> => {
+    const response = await api.get('/reports/inventory/kpi', { params: filters });
     return response.data;
   },
 
   getRevenueTrend: async (filters?: FilterState): Promise<TimeSeriesData[]> => {
-    const response = await api.get<TimeSeriesData[]>('/reports/revenue-trend', { params: filters });
+    const response = await api.get<TimeSeriesData[]>('/reports/revenue-series', { params: filters });
     return response.data;
   },
 
   getSalesByModel: async (filters?: FilterState): Promise<DistributionData[]> => {
-    const response = await api.get<DistributionData[]>('/reports/sales-by-model', { params: filters });
+    const response = await api.get<DistributionData[]>('/reports/distribution/brand', { params: filters });
     return response.data;
   },
 
   getInventoryDistribution: async (filters?: FilterState): Promise<DistributionData[]> => {
-    const response = await api.get<DistributionData[]>('/reports/inventory-distribution', { params: filters });
+    const response = await api.get<DistributionData[]>('/reports/distribution/category', { params: filters });
     return response.data;
   },
 
   getExpenseCategories: async (filters?: FilterState): Promise<DistributionData[]> => {
-    const response = await api.get<DistributionData[]>('/reports/expense-categories', { params: filters });
+    const response = await api.get<DistributionData[]>('/reports/distribution/branch', { params: filters });
     return response.data;
   },
 
@@ -42,6 +53,11 @@ export const reportService = {
 
   getInventoryHealth: async (filters?: FilterState): Promise<InventoryHealthData[]> => {
     const response = await api.get<InventoryHealthData[]>('/reports/inventory-health', { params: filters });
+    return response.data;
+  },
+
+  getInventoryKPI: async (filters?: FilterState): Promise<InventoryKPI> => {
+    const response = await api.get<InventoryKPI>('/reports/inventory/kpi', { params: filters });
     return response.data;
   },
 

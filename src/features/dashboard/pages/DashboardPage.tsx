@@ -95,7 +95,7 @@ export function DashboardPage() {
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Revenue Overview</CardTitle>
-              <CardDescription>Monthly revenue performance for the current year</CardDescription>
+              <CardDescription> Revenue performance for the current year</CardDescription>
             </div>
             <Button 
               variant="ghost" 

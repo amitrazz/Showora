@@ -9,6 +9,20 @@ export const useReportMetrics = (filters?: FilterState) => {
   });
 };
 
+export const useSalesLeaderboard = (filters?: FilterState) => {
+  return useQuery({
+    queryKey: ['reports', 'sales-leaderboard', filters],
+    queryFn: () => reportService.getSalesLeaderboard(filters),
+  });
+};
+
+export const useInventoryKPI = (filters?: FilterState) => {
+  return useQuery({
+    queryKey: ['reports', 'inventory-kpi', filters],
+    queryFn: () => reportService.getInventoryKpi(filters),
+  });
+};
+
 export const useRevenueTrend = (filters?: FilterState) => {
   return useQuery({
     queryKey: ['reports', 'revenue-trend', filters],

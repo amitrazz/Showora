@@ -1,5 +1,4 @@
-import { useReportMetrics, useSalesByModel, useSalesExecutives } from '../hooks';
-import { useSales } from '@/features/sales/hooks';
+import { useReportMetrics, useSalesByModel, useSalesLeaderboard } from '../hooks';
 import { StatsCard } from '@/components/common/StatsCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SalesBarChart } from './Charts';
@@ -10,29 +9,11 @@ import { SkeletonChart } from '@/components/ui/skeleton/SkeletonTemplates';
 export const SalesView = () => {
   const { data: metrics } = useReportMetrics();
   const { data: salesData } = useSalesByModel();
-  const { data: apiExecs } = useSalesExecutives();
-  const { data: salesResponse } = useSales();
-  const salesList = salesResponse?.data;
+  const { data: leaderboardData } = useSalesLeaderboard();
 
   if (!metrics) return <SkeletonChart />;
 
-  // Compute dynamic leaderboard from real sales data
-  const computedExecsMap = new Map<string, { name: string; units: number; revenue: number; target: number }>();
-
-  if (salesList && salesList.length > 0) {
-    salesList.forEach((sale) => {
-      const execName = sale.salesExecutive || 'Current User';
-      const existing = computedExecsMap.get(execName) || { name: execName, units: 0, revenue: 0, target: 2500000 };
-      existing.units += 1;
-      existing.revenue += (sale.grandTotal || 0);
-      computedExecsMap.set(execName, existing);
-    });
-  }
-
-  const computedExecs = Array.from(computedExecsMap.values());
-  computedExecs.sort((a, b) => b.revenue - a.revenue);
-
-  const execs = computedExecs.length > 0 ? computedExecs : (apiExecs || []);
+  const execs = leaderboardData?.leaderboard || [];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -68,8 +49,8 @@ export const SalesView = () => {
                 <p className="text-sm text-muted-foreground py-4 text-center">No sales executive data available.</p>
               ) : (
                 execs.map((exec, i) => {
-                  const targetVal = exec.target || 2500000;
-                  const percent = Math.min(Math.round((exec.revenue / targetVal) * 100), 100);
+                  const targetVal = exec.targetRevenue || 2500000;
+                  const percent = Math.min(Math.round((exec.totalRevenue / targetVal) * 100), 100);
                   return (
                     <div key={i}>
                       <div className="flex justify-between items-center mb-2">
@@ -78,12 +59,12 @@ export const SalesView = () => {
                             {i + 1}
                           </div>
                           <div>
-                            <p className="text-sm font-medium">{exec.name}</p>
-                            <p className="text-xs text-muted-foreground">{exec.units} unit{exec.units === 1 ? '' : 's'} sold</p>
+                            <p className="text-sm font-medium">{exec.executiveName}</p>
+                            <p className="text-xs text-muted-foreground">{exec.unitsSold} unit{exec.unitsSold === 1 ? '' : 's'} sold</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-mono font-medium">{formatCurrency(exec.revenue)}</p>
+                          <p className="text-sm font-mono font-medium">{formatCurrency(exec.totalRevenue)}</p>
                           <p className="text-xs text-muted-foreground">{percent}% of target</p>
                         </div>
                       </div>

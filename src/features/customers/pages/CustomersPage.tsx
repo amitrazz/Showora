@@ -1,6 +1,5 @@
-import { useCustomers, useCustomerMetrics, useImportCustomers } from "../hooks";
-import { useSales } from "../../sales/hooks";
-import { SkeletonTable, SkeletonStatsCard } from "@/components/ui/skeleton/SkeletonTemplates";
+import { useCustomers, useCustomerMetrics, useImportCustomers, useGlobalCustomerSummary } from "../hooks";
+import { SkeletonStatsCard } from "@/components/ui/skeleton/SkeletonTemplates";
 import { DataTable } from "@/components/common/DataTable";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatsCard } from "@/components/common/StatsCard";
@@ -120,10 +119,10 @@ export function CustomersPage() {
   const navigate = useNavigate();
   const [cursor, setCursor] = useState<string | undefined>();
   const [previousCursors, setPreviousCursors] = useState<(string | undefined)[]>([]);
-  const { data: customerPage, isLoading } = useCustomers({ cursor, limit: 10 });
+  const [search, setSearch] = useState("");
+  const { data: customerPage, isLoading } = useCustomers({ cursor, limit: 10, search });
   const { data: metrics } = useCustomerMetrics();
-  const { data: salesResponse } = useSales();
-  const salesList = salesResponse?.data;
+  const { data: summary } = useGlobalCustomerSummary();
 
   const importMutation = useImportCustomers();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -178,35 +177,10 @@ export function CustomersPage() {
   };
 
   const rawCustomers = customerPage?.data ?? [];
-  const customers = rawCustomers.map((customer) => {
-    const fullName = `${customer.firstName} ${customer.lastName}`.trim().toLowerCase();
-    const customerSales = salesList?.filter(sale => 
-      sale.customerId === customer.id || 
-      (sale.customerName && sale.customerName.trim().toLowerCase() === fullName)
-    ) || [];
-    
-    const totalPurchasesCount = customerSales.length > 0 ? customerSales.length : (customer.totalPurchases || 0);
-    const computedLtv = customerSales.length > 0 
-      ? customerSales.reduce((sum, sale) => sum + (sale.grandTotal || 0), 0) 
-      : (customer.lifetimeValue || 0);
-    const computedOutstanding = customerSales.length > 0 
-      ? customerSales.reduce((sum, sale) => sum + (sale.outstandingBalance || 0), 0) 
-      : (customer.outstandingAmount || 0);
+  const customers = rawCustomers;
 
-    return {
-      ...customer,
-      totalPurchases: totalPurchasesCount,
-      lifetimeValue: computedLtv,
-      outstandingAmount: computedOutstanding,
-    };
-  });
-
-  const totalOutstandingSales = metrics?.outstandingAmount !== undefined && metrics.outstandingAmount > 0
-    ? metrics.outstandingAmount
-    : (salesList?.reduce((sum, sale) => sum + (sale.outstandingBalance || 0), 0) ?? 0);
-  const totalLtvRevenue = metrics?.totalRevenue !== undefined && metrics.totalRevenue > 0
-    ? metrics.totalRevenue
-    : (salesList?.reduce((sum, sale) => sum + (sale.grandTotal || 0), 0) ?? 0);
+  const totalOutstandingSales = summary?.totalOutstandingAmount ?? metrics?.outstandingAmount ?? 0;
+  const totalLtvRevenue = summary?.totalLifetimeValue ?? metrics?.totalRevenue ?? 0;
   const currentPageIndex = previousCursors.length;
 
   const goToNextPage = () => {
@@ -302,13 +276,20 @@ export function CustomersPage() {
         </div>
       )}
 
-      {isLoading && !customerPage ? (
-        <SkeletonTable />
-      ) : customers.length > 0 ? (
+      {(customers.length > 0 || search || isLoading) ? (
         <DataTable
           columns={customerColumns}
           data={customers}
+          isLoading={isLoading}
           searchKey="firstName"
+          serverSearch={{
+            value: search,
+            onChange: (val) => {
+              setSearch(val);
+              setCursor(undefined);
+              setPreviousCursors([]);
+            },
+          }}
           serverPagination={{
             pageIndex: currentPageIndex,
             pageSize: customerPage?.limit ?? 10,

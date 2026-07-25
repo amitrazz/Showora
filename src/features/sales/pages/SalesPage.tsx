@@ -1,6 +1,6 @@
 import { useSales, useSalesMetrics, useImportSales } from "../hooks";
 import { salesService } from "../services";
-import { SkeletonTable, SkeletonStatsCard } from "@/components/ui/skeleton/SkeletonTemplates";
+import { SkeletonStatsCard } from "@/components/ui/skeleton/SkeletonTemplates";
 import { DataTable } from "@/components/common/DataTable";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatsCard } from "@/components/common/StatsCard";
@@ -131,7 +131,8 @@ const salesColumns: ColumnDef<SalesRecord>[] = [
 export function SalesPage() {
   const [cursor, setCursor] = useState<string | undefined>();
   const [previousCursors, setPreviousCursors] = useState<(string | undefined)[]>([]);
-  const { data: salesResult, isLoading } = useSales({ cursor, limit: 10 });
+  const [search, setSearch] = useState("");
+  const { data: salesResult, isLoading } = useSales({ cursor, limit: 10, search });
   const { data: metrics } = useSalesMetrics();
   const importMutation = useImportSales();
   const navigate = useNavigate();
@@ -354,24 +355,31 @@ export function SalesPage() {
         </div>
       )}
 
-      {isLoading && !salesResult ? (
-        <SkeletonTable />
-      ) : sales.length > 0 ? (
+      {(sales.length > 0 || search || isLoading) ? (
         <DataTable
           columns={salesColumns}
           data={sales}
+          isLoading={isLoading}
           searchKey="invoiceNumber"
+          serverSearch={{
+            value: search,
+            onChange: (val) => {
+              setSearch(val);
+              setCursor(undefined);
+              setPreviousCursors([]);
+            },
+          }}
           serverPagination={
             salesPage
               ? {
-                  pageIndex: currentPageIndex,
-                  pageSize: salesPage.limit ?? 10,
-                  totalCount: salesPage.totalCount ?? 0,
-                  canPreviousPage: previousCursors.length > 0,
-                  canNextPage: salesPage.hasMore ?? false,
-                  onPreviousPage: goToPreviousPage,
-                  onNextPage: goToNextPage,
-                }
+                pageIndex: currentPageIndex,
+                pageSize: salesPage.limit ?? 10,
+                totalCount: salesPage.totalCount ?? 0,
+                canPreviousPage: previousCursors.length > 0,
+                canNextPage: salesPage.hasMore ?? false,
+                onPreviousPage: goToPreviousPage,
+                onNextPage: goToNextPage,
+              }
               : undefined
           }
         />
