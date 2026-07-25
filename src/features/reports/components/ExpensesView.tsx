@@ -15,29 +15,11 @@ export const ExpensesView = () => {
 
   if (!metrics) return <SkeletonChart />;
 
-  const hasExpenses = expenseList && expenseList.length > 0;
-
-  const totalOpsExpenses = hasExpenses
-    ? expenseList.reduce((sum, e) => sum + (e.totalAmount || 0), 0)
-    : metrics.expenses;
-
+  const totalOpsExpenses = metrics.expenses || 0;
   const dailyAvg = totalOpsExpenses / 30;
+  const pendingPayouts = metrics.outstandingPayments || 0;
 
-  const pendingPayouts = hasExpenses
-    ? expenseList.filter(e => e.paymentStatus !== 'Paid').reduce((sum, e) => sum + (e.outstandingAmount || e.totalAmount || 0), 0)
-    : 125000;
-
-  // Dynamic expense category distribution from real data
-  const categoryMap = new Map<string, number>();
-  if (hasExpenses) {
-    expenseList.forEach(e => {
-      const cat = e.category || 'Other';
-      categoryMap.set(cat, (categoryMap.get(cat) || 0) + (e.totalAmount || 0));
-    });
-  }
-
-  const computedCatData = Array.from(categoryMap.entries()).map(([name, value]) => ({ name, value }));
-  const activeCatData = computedCatData.length > 0 ? computedCatData : (expensesData || []);
+  const activeCatData = expensesData || [];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
