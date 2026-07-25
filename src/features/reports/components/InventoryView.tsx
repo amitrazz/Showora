@@ -1,6 +1,5 @@
 import { useReportMetrics, useInventoryHealth, useInventoryDistribution } from '../hooks';
-import { useInventory } from '@/features/inventory/hooks';
-import { InventoryVehicle } from '@/features/inventory/types';
+
 import { StatsCard } from '@/components/common/StatsCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ModernDonutChart } from './Charts';
@@ -12,13 +11,8 @@ export const InventoryView = () => {
   const { data: metrics } = useReportMetrics();
   const { data: healthData } = useInventoryHealth();
   const { data: distData } = useInventoryDistribution();
-  const { data: inventoryRes } = useInventory();
 
   if (!metrics) return <SkeletonChart />;
-
-  const inventoryList: InventoryVehicle[] = Array.isArray(inventoryRes)
-    ? inventoryRes
-    : (inventoryRes?.data ?? []);
 
   const totalValue = metrics.inventoryValue || 0;
 
