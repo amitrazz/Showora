@@ -86,7 +86,7 @@ const customerColumns: ColumnDef<Customer>[] = [
       const amount = row.original.outstandingAmount;
       return (
         <span className={`text-sm font-medium ${amount > 0 ? "text-destructive" : ""}`}>
-          {amount > 0 ? formatCurrency(amount) : "₹0"}
+          {amount > 0 ? formatCurrency(amount) : "🟢 No Due"}
         </span>
       );
     },
