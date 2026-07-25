@@ -61,7 +61,7 @@ export function InvoiceWizardPage() {
     defaultValues: {
       sale: { saleId: initialSaleId },
       metadata: { invoiceDate: new Date().toISOString().split('T')[0], dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], salesExecutive: "Rajesh Kumar", branch: "Downtown Main Showroom" },
-      pricing: { basePrice: 0, accessoriesPrice: 0, registrationTax: 0, insurance: 0, otherCharges: 0, discount: 0, gstRate: 28 },
+      pricing: { basePrice: 0, accessoriesPrice: 0, registrationTax: 0, insurance: 0, otherCharges: 0, discount: 0, gstRate: 5 },
       payment: { amountPaid: 0, method: "Bank Transfer" },
     },
     mode: "onChange",
@@ -83,10 +83,10 @@ export function InvoiceWizardPage() {
   const executiveOptions = useMemo(() => {
     const rawExecOptions = (apiExecutives && apiExecutives.length > 0)
       ? apiExecutives.map(u => {
-          const name = [u.firstName, u.lastName].filter(Boolean).join(" ");
-          const val = name || u.email;
-          return { value: val, label: name ? `${name} (${u.email})` : u.email };
-        })
+        const name = [u.firstName, u.lastName].filter(Boolean).join(" ");
+        const val = name || u.email;
+        return { value: val, label: name ? `${name} (${u.email})` : u.email };
+      })
       : SALES_EXECUTIVES;
 
     const options = [...rawExecOptions];
@@ -113,14 +113,14 @@ export function InvoiceWizardPage() {
     return options;
   }, [apiBranches, currentBranchValue, selectedSale?.branch, invoice?.branch]);
 
-  const filteredSales = sales.filter(s => 
-    s && 
+  const filteredSales = sales.filter(s =>
+    s &&
     ((s.invoiceNumber && s.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
-     (s.customerName && s.customerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-     (s.id && s.id.toLowerCase().includes(searchTerm.toLowerCase())) ||
-     (s.vehicleMake && s.vehicleMake.toLowerCase().includes(searchTerm.toLowerCase())) ||
-     (s.vehicleModel && s.vehicleModel.toLowerCase().includes(searchTerm.toLowerCase())) ||
-     (s.vin && s.vin.toLowerCase().includes(searchTerm.toLowerCase())))
+      (s.customerName && s.customerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (s.id && s.id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (s.vehicleMake && s.vehicleMake.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (s.vehicleModel && s.vehicleModel.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (s.vin && s.vin.toLowerCase().includes(searchTerm.toLowerCase())))
   );
 
   useEffect(() => {
@@ -154,7 +154,7 @@ export function InvoiceWizardPage() {
         insurance: invoice.insurance ?? 0,
         otherCharges: invoice.otherCharges ?? 0,
         discount: invoice.discount ?? 0,
-        gstRate: ((invoice.cgstRate || 0) + (invoice.sgstRate || 0)) as any || 28,
+        gstRate: ((invoice.cgstRate || 0) + (invoice.sgstRate || 0)) as any || 5,
       },
       payment: {
         amountPaid: invoice.amountPaid ?? 0,
@@ -186,32 +186,32 @@ export function InvoiceWizardPage() {
       setValue("pricing.insurance", selectedSale.insurance || 0, { shouldValidate: true });
       setValue("pricing.discount", selectedSale.discount || 0, { shouldValidate: true });
       setValue("payment.amountPaid", selectedSale.totalPaid || 0, { shouldValidate: true });
-      
+
       const basePriceRupees = selectedSale.basePrice || 0;
       const discountRupees = selectedSale.discount || 0;
       const gstAmountRupees = selectedSale.gstAmount || 0;
-      const calculatedGstRate = basePriceRupees > 0 ? Math.round((gstAmountRupees / (basePriceRupees - discountRupees)) * 100) : 28;
-      setValue("pricing.gstRate", calculatedGstRate === 18 ? 18 : 28, { shouldValidate: true });
+      const calculatedGstRate = basePriceRupees > 0 ? Math.round((gstAmountRupees / (basePriceRupees - discountRupees)) * 100) : 5;
+      setValue("pricing.gstRate", calculatedGstRate === 18 ? 18 : 5, { shouldValidate: true });
     }
   }, [selectedSale, setValue, isEditMode, branchOptions, executiveOptions]);
-  
+
   // Live Pricing
   const p = watch("pricing");
   const taxableAmount = (p.basePrice || 0) + (p.accessoriesPrice || 0) - (p.discount || 0);
-  const gstRate = p.gstRate || 28;
+  const gstRate = p.gstRate || 5;
   const cgstAmount = taxableAmount * (gstRate / 2 / 100);
   const sgstAmount = taxableAmount * (gstRate / 2 / 100);
   const totalGst = cgstAmount + sgstAmount;
   const grandTotal = Math.round(taxableAmount + totalGst + (p.registrationTax || 0) + (p.insurance || 0) + (p.otherCharges || 0));
-  
+
   const amountPaid = watch("payment.amountPaid") || 0;
   const outstanding = Math.max(0, grandTotal - amountPaid);
-  
+
   const handleNext = async () => {
     const stepIds = ["sale", "metadata", "pricing", "payment", "review"] as const;
     const currentStepId = stepIds[currentStep];
     const isStepValid = currentStepId === "review" ? true : await trigger(currentStepId as any);
-    
+
     if (isStepValid) {
       setCurrentStep(s => Math.min(s + 1, steps.length - 1));
     }
@@ -242,8 +242,8 @@ export function InvoiceWizardPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 pb-12 animate-in fade-in duration-500">
-      <PageHeader 
-        title={isEditMode ? "Edit Invoice Details" : "Create Invoice"} 
+      <PageHeader
+        title={isEditMode ? "Edit Invoice Details" : "Create Invoice"}
         description={isEditMode ? "Update details of the generated vehicle invoice." : "Generate a new tax invoice linked to an active sales record."}
         action={
           <Button variant="outline" onClick={() => navigate({ to: "/invoices" })}>
@@ -260,11 +260,10 @@ export function InvoiceWizardPage() {
             const isCurrent = currentStep === index;
             return (
               <div key={step.id} className="flex flex-col items-center gap-2 bg-background px-2 z-10 min-w-[80px]">
-                <div 
-                  className={`flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors ${
-                    isCompleted ? "bg-primary border-primary text-primary-foreground" :
+                <div
+                  className={`flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors ${isCompleted ? "bg-primary border-primary text-primary-foreground" :
                     isCurrent ? "border-primary text-primary" : "border-border text-muted-foreground"
-                  }`}
+                    }`}
                 >
                   {isCompleted ? <Check className="h-4 w-4" /> : <span className="text-sm font-medium">{index + 1}</span>}
                 </div>
@@ -278,14 +277,14 @@ export function InvoiceWizardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        
+
         {/* Main Wizard Area */}
         <div className="lg:col-span-3">
           <Card className="overflow-hidden shadow-soft border-border/50">
             <CardContent className="p-0">
               <div className="p-6 sm:p-10 min-h-[450px] relative">
                 <AnimatePresence mode="wait">
-                  
+
                   {currentStep === 0 && (
                     <motion.div key="step0" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
                       <div className="space-y-1">
@@ -305,10 +304,10 @@ export function InvoiceWizardPage() {
                                   Customer: {selectedSale.customerName} | Vehicle: {selectedSale.vehicleMake} {selectedSale.vehicleModel}
                                 </p>
                               </div>
-                              <Button 
-                                type="button" 
-                                variant="outline" 
-                                size="sm" 
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
                                 onClick={() => {
                                   setValue("sale.saleId", "", { shouldValidate: true });
                                   setSearchTerm("");
@@ -319,7 +318,7 @@ export function InvoiceWizardPage() {
                             </div>
                           ) : (
                             <div className="relative">
-                              <Input 
+                              <Input
                                 type="text"
                                 placeholder="Type Sale ID or Customer name to search..."
                                 value={searchTerm}
@@ -332,7 +331,7 @@ export function InvoiceWizardPage() {
                               />
                               <AnimatePresence>
                                 {isDropdownOpen && (
-                                  <motion.div 
+                                  <motion.div
                                     initial={{ opacity: 0, y: -10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -10 }}
@@ -501,31 +500,31 @@ export function InvoiceWizardPage() {
                         <h3 className="text-lg font-medium">Review & Generate</h3>
                       </div>
                       <p className="text-sm text-muted-foreground -mt-4">Ensure all taxation splits and identifiers are correct. Generated invoices cannot be easily altered.</p>
-                      
+
                       <div className="bg-muted/20 p-6 rounded-xl border border-border/50">
-                         <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 border-b pb-2">Invoice Summary</h4>
-                         <div className="space-y-3 mb-6">
-                           <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Sale Ref:</span><span className="text-sm font-medium font-mono">{selectedSale?.invoiceNumber || watch("sale.saleId")}</span></div>
-                           <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Executive:</span><span className="text-sm font-medium">{watch("metadata.salesExecutive")}</span></div>
-                         </div>
-                         <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 border-b pb-2">Financials</h4>
-                         <div className="space-y-2">
-                           <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Taxable Value:</span><span className="text-sm font-medium font-mono">{formatCurrency(taxableAmount)}</span></div>
-                           <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">GST ({gstRate}%):</span><span className="text-sm font-medium font-mono">{formatCurrency(totalGst)}</span></div>
-                           <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Grand Total:</span><span className="text-sm font-bold font-mono">{formatCurrency(grandTotal)}</span></div>
-                         </div>
+                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 border-b pb-2">Invoice Summary</h4>
+                        <div className="space-y-3 mb-6">
+                          <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Sale Ref:</span><span className="text-sm font-medium font-mono">{selectedSale?.invoiceNumber || watch("sale.saleId")}</span></div>
+                          <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Executive:</span><span className="text-sm font-medium">{watch("metadata.salesExecutive")}</span></div>
+                        </div>
+                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 border-b pb-2">Financials</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Taxable Value:</span><span className="text-sm font-medium font-mono">{formatCurrency(taxableAmount)}</span></div>
+                          <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">GST ({gstRate}%):</span><span className="text-sm font-medium font-mono">{formatCurrency(totalGst)}</span></div>
+                          <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Grand Total:</span><span className="text-sm font-bold font-mono">{formatCurrency(grandTotal)}</span></div>
+                        </div>
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
-              
+
               {/* Footer Actions */}
               <div className="flex items-center justify-between border-t p-6 bg-muted/20">
                 <Button variant="outline" onClick={handleBack} disabled={currentStep === 0} className="shadow-sm">
                   <ChevronLeft className="mr-2 h-4 w-4" /> Back
                 </Button>
-                
+
                 {currentStep < steps.length - 1 ? (
                   <Button onClick={handleNext} className="shadow-sm">
                     Next <ChevronRight className="ml-2 h-4 w-4" />
@@ -550,15 +549,15 @@ export function InvoiceWizardPage() {
                 <div className="flex justify-between"><span className="text-muted-foreground">Base Price</span><span className="font-mono">{formatCurrency(p.basePrice || 0)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Accessories</span><span className="font-mono">{formatCurrency(p.accessoriesPrice || 0)}</span></div>
                 <div className="flex justify-between text-destructive"><span className="text-destructive/80">Discount</span><span className="font-mono">-{formatCurrency(p.discount || 0)}</span></div>
-                
+
                 <div className="border-t border-border/50 pt-2 flex justify-between font-medium">
                   <span className="text-muted-foreground">Taxable Value</span>
                   <span className="font-mono">{formatCurrency(taxableAmount)}</span>
                 </div>
-                
-                <div className="flex justify-between text-xs text-muted-foreground pl-2"><span className="">CGST ({gstRate/2}%)</span><span className="font-mono">{formatCurrency(cgstAmount)}</span></div>
-                <div className="flex justify-between text-xs text-muted-foreground pl-2"><span className="">SGST ({gstRate/2}%)</span><span className="font-mono">{formatCurrency(sgstAmount)}</span></div>
-                
+
+                <div className="flex justify-between text-xs text-muted-foreground pl-2"><span className="">CGST ({gstRate / 2}%)</span><span className="font-mono">{formatCurrency(cgstAmount)}</span></div>
+                <div className="flex justify-between text-xs text-muted-foreground pl-2"><span className="">SGST ({gstRate / 2}%)</span><span className="font-mono">{formatCurrency(sgstAmount)}</span></div>
+
                 <div className="border-t border-border/50 pt-2 mt-2">
                   <div className="flex justify-between"><span className="text-muted-foreground">Registration</span><span className="font-mono">{formatCurrency(p.registrationTax || 0)}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Insurance</span><span className="font-mono">{formatCurrency(p.insurance || 0)}</span></div>
@@ -568,7 +567,7 @@ export function InvoiceWizardPage() {
                   <span>Grand Total</span>
                   <span className="font-mono">{formatCurrency(grandTotal)}</span>
                 </div>
-                
+
                 <div className="border-t border-border/50 pt-4 mt-4">
                   <div className="flex justify-between text-emerald-600 font-medium"><span>Received</span><span className="font-mono">{formatCurrency(amountPaid)}</span></div>
                   <div className="flex justify-between text-destructive font-medium mt-1"><span>Due</span><span className="font-mono">{formatCurrency(outstanding)}</span></div>
