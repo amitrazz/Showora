@@ -122,7 +122,8 @@ export function CustomersPage() {
   const [previousCursors, setPreviousCursors] = useState<(string | undefined)[]>([]);
   const { data: customerPage, isLoading } = useCustomers({ cursor, limit: 10 });
   const { data: metrics } = useCustomerMetrics();
-  const { data: salesList } = useSales();
+  const { data: salesResponse } = useSales();
+  const salesList = salesResponse?.data;
 
   const importMutation = useImportCustomers();
   const fileInputRef = useRef<HTMLInputElement>(null);

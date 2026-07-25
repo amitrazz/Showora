@@ -14,7 +14,8 @@ import { SkeletonChart } from '@/components/ui/skeleton/SkeletonTemplates';
 export const TaxesView = () => {
   const { data: metrics } = useReportMetrics();
   const { data: taxData } = useTaxRegister();
-  const { data: salesList } = useSales();
+  const { data: salesResponse } = useSales();
+  const salesList = salesResponse?.data;
   const { data: purchaseList } = usePurchases();
 
   if (!metrics) return <SkeletonChart />;

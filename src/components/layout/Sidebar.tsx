@@ -22,15 +22,15 @@ import { useLogout } from "@/features/auth/hooks";
 import { useGeneralSettings } from "@/features/settings/hooks";
 
 const navItems = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Customers", href: "/customers", icon: Users },
-  { name: "Inventory", href: "/inventory", icon: Bike },
-  { name: "Sales", href: "/sales", icon: IndianRupee },
-  { name: "Purchases", href: "/purchases", icon: ShoppingCart },
-  { name: "Invoices", href: "/invoices", icon: Receipt },
-  { name: "Expenses", href: "/expenses", icon: Wallet },
-  { name: "Reports", href: "/reports", icon: BarChart3 },
-  { name: "Settings", href: "/settings", icon: SettingsIcon },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, permission: "showora:dashboard:read" },
+  { name: "Customers", href: "/customers", icon: Users, permission: "showora:customer:read" },
+  { name: "Inventory", href: "/inventory", icon: Bike, permission: "showora:inventory:read" },
+  { name: "Sales", href: "/sales", icon: IndianRupee, permission: "showora:sales:read" },
+  { name: "Purchases", href: "/purchases", icon: ShoppingCart, permission: "showora:purchase:read" },
+  { name: "Invoices", href: "/invoices", icon: Receipt, permission: "showora:invoice:read" },
+  { name: "Expenses", href: "/expenses", icon: Wallet, permission: "showora:expense:read" },
+  { name: "Reports", href: "/reports", icon: BarChart3, permission: "showora:report:read" },
+  { name: "Settings", href: "/settings", icon: SettingsIcon, permission: "showora:setting:read" },
 ] as const;
 
 export function Sidebar() {
@@ -104,7 +104,7 @@ export function Sidebar() {
       <div className="h-px w-full bg-gradient-to-r from-transparent via-border/50 to-transparent" />
 
       <nav className="flex-1 space-y-1 overflow-y-auto overflow-x-hidden p-3 custom-scrollbar">
-        {navItems.map((item) => {
+        {navItems.filter(item => !item.permission || user?.role?.toUpperCase() === 'ADMIN' || user?.permissions?.includes(item.permission)).map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname.startsWith(item.href);
           return (

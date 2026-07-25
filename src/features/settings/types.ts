@@ -62,3 +62,26 @@ export interface AppearanceConfig {
   primaryColor: string;
   compactMode: boolean;
 }
+
+export interface Role {
+  id: string;
+  name: string;
+  description: string | null;
+  module?: string | null;
+  parentId?: string | null;
+  permissions: string[];
+  userCount?: number;
+  users?: { id: string; email: string; firstName: string | null; lastName: string | null }[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateRoleDto {
+  name: string;
+  description?: string;
+  module?: string;
+  parentId?: string;
+  permissions?: string[];
+}
+
+export type UpdateRoleDto = Partial<CreateRoleDto>;

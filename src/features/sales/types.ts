@@ -97,3 +97,17 @@ export interface SalesMetrics {
   averageDealValue: number;
   totalProfit: number;
 }
+
+export interface SalesListOptions {
+  search?: string;
+  limit?: number;
+  cursor?: string;
+}
+
+export interface SalesListResponse {
+  data: SalesRecord[];
+  nextCursor?: string | null;
+  hasMore: boolean;
+  limit: number;
+  totalCount: number;
+}

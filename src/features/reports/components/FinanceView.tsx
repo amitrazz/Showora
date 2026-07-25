@@ -11,7 +11,8 @@ import { SkeletonChart } from '@/components/ui/skeleton/SkeletonTemplates';
 export const FinanceView = () => {
   const { data: metrics } = useReportMetrics();
   const { data: expensesData } = useExpenseCategories();
-  const { data: salesList } = useSales();
+  const { data: salesResponse } = useSales();
+  const salesList = salesResponse?.data;
   const { data: expenseList } = useExpenses();
 
   if (!metrics) return <SkeletonChart />;
@@ -22,7 +23,7 @@ export const FinanceView = () => {
   const totalRev = hasSales ? salesList.reduce((sum, s) => sum + (s.grandTotal || 0), 0) : metrics.revenue;
   const totalExp = hasExpenses ? expenseList.reduce((sum, e) => sum + (e.totalAmount || 0), 0) : metrics.expenses;
   const grossProfit = hasSales ? salesList.reduce((sum, s) => sum + (s.profitMargin || (s.grandTotal - s.basePrice) || 0), 0) : metrics.profit;
-  const netProfitVal = totalRev - totalExp;
+  const netProfitVal = grossProfit - totalExp;
   const netMargin = totalRev > 0 ? Math.round((netProfitVal / totalRev) * 100) : metrics.netProfitMargin;
 
   const outstandingPayablesables = hasSales ? salesList.reduce((sum, s) => sum + (s.outstandingBalance || 0), 0) : metrics.outstandingPayments;

@@ -5,7 +5,10 @@ import {
   UserSettings, 
   AuditLogEvent,
   NotificationPreferences,
-  AppearanceConfig
+  AppearanceConfig,
+  Role,
+  CreateRoleDto,
+  UpdateRoleDto
 } from './types';
 import { api } from '@/lib/api';
 
@@ -57,5 +60,35 @@ export const settingsService = {
 
   updateSettings: async (module: string, data: any): Promise<void> => {
     await api.patch(`/settings/${module}`, data);
+  },
+
+  getPermissions: async (module?: string): Promise<any> => {
+    const response = await api.get(`/permissions${module ? `?module=${module}` : ''}`);
+    return response.data;
+  },
+
+  getRoles: async (module?: string): Promise<Role[]> => {
+    const response = await api.get<Role[]>(`/roles${module ? `?module=${module}` : ''}`);
+    return response.data;
+  },
+
+  getRoleById: async (id: string): Promise<Role> => {
+    const response = await api.get<Role>(`/roles/${id}`);
+    return response.data;
+  },
+
+  createRole: async (data: CreateRoleDto): Promise<Role> => {
+    const response = await api.post<Role>('/roles', data);
+    return response.data;
+  },
+
+  updateRole: async (id: string, data: UpdateRoleDto): Promise<Role> => {
+    const response = await api.put<Role>(`/roles/${id}`, data);
+    return response.data;
+  },
+
+  deleteRole: async (id: string): Promise<{ success: boolean; message: string }> => {
+    const response = await api.delete<{ success: boolean; message: string }>(`/roles/${id}`);
+    return response.data;
   }
 };

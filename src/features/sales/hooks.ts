@@ -4,10 +4,12 @@ import { CreateSaleWizardForm } from './schemas';
 import { toast } from 'sonner';
 import { useNavigate } from '@tanstack/react-router';
 
-export const useSales = () => {
+import { SalesListOptions } from './types';
+
+export const useSales = (options: SalesListOptions = {}) => {
   return useQuery({
-    queryKey: ['sales'],
-    queryFn: salesService.getSales,
+    queryKey: ['sales', options],
+    queryFn: () => salesService.getSales(options),
   });
 };
 
@@ -89,6 +91,35 @@ export const useUpdateSale = () => {
     onError: (error: any) => {
       toast.error('Failed to update sale', {
         description: error.message,
+      });
+    },
+  });
+};
+
+export const useImportSales = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => salesService.importSales(file),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      queryClient.invalidateQueries({ queryKey: ['sales-metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+
+      if (data.importedCount > 0) {
+        toast.success(`Imported ${data.importedCount} sales records`, {
+          description: data.failedCount > 0 ? `${data.failedCount} records failed validation.` : undefined,
+        });
+      } else if (data.failedCount > 0) {
+        toast.error('Failed to import sales records', {
+          description: 'Check the error logs for details.',
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast.error('Import Failed', {
+        description: error.message || 'Failed to upload and import sales CSV file.',
       });
     },
   });

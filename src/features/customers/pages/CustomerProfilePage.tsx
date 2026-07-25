@@ -26,7 +26,8 @@ export function CustomerProfilePage() {
   const { customerId } = useParams({ strict: false });
   const { data: customer, isLoading } = useCustomer(customerId as string);
   const [activeTab, setActiveTab] = useState("overview");
-  const { data: salesList } = useSales();
+  const { data: salesResponse } = useSales();
+  const salesList = salesResponse?.data;
 
   if (isLoading) {
     return <SkeletonProfilePage />;

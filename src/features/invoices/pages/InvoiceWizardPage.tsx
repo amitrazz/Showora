@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, ChevronRight, ChevronLeft, Save, IndianRupee, Banknote, Search, Calendar, FileText } from "lucide-react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { formatCurrency } from "@/utils/formatters";
-import { useSales } from "../../sales/hooks";
+import { useSales, useSale } from "../../sales/hooks";
 
 const steps = [
   { id: "sale", title: "Link Sale" },
@@ -32,13 +32,24 @@ export function InvoiceWizardPage() {
   const createMutation = useCreateInvoice();
   const updateMutation = useUpdateInvoice();
 
-  const { data: salesList } = useSales();
-  const sales = salesList || [];
-  const { data: apiExecutives } = useSalesExecutives();
-
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  const { data: salesResponse, isLoading: isSalesLoading } = useSales({
+    search: debouncedSearchTerm,
+    limit: 50,
+  });
+  const sales = salesResponse?.data || [];
+  const { data: apiExecutives } = useSalesExecutives();
 
   const isEditMode = !!invoiceId;
 
@@ -61,7 +72,13 @@ export function InvoiceWizardPage() {
   const currentExecValue = watch("metadata.salesExecutive");
   const currentBranchValue = watch("metadata.branch");
   const selectedSaleId = watch("sale.saleId");
-  const selectedSale = sales.find(s => s.id === selectedSaleId);
+  const { data: fetchedSelectedSale } = useSale(selectedSaleId);
+  const selectedSale =
+    sales.find(
+      (s) =>
+        s.id === selectedSaleId ||
+        (s.invoiceNumber && s.invoiceNumber === selectedSaleId)
+    ) || fetchedSelectedSale;
 
   const rawExecOptions = (apiExecutives && apiExecutives.length > 0)
     ? apiExecutives.map(u => {
@@ -93,7 +110,11 @@ export function InvoiceWizardPage() {
   const filteredSales = sales.filter(s => 
     s && 
     ((s.invoiceNumber && s.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
-     (s.customerName && s.customerName.toLowerCase().includes(searchTerm.toLowerCase())))
+     (s.customerName && s.customerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+     (s.id && s.id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+     (s.vehicleMake && s.vehicleMake.toLowerCase().includes(searchTerm.toLowerCase())) ||
+     (s.vehicleModel && s.vehicleModel.toLowerCase().includes(searchTerm.toLowerCase())) ||
+     (s.vin && s.vin.toLowerCase().includes(searchTerm.toLowerCase())))
   );
 
   useEffect(() => {
@@ -166,7 +187,7 @@ export function InvoiceWizardPage() {
       const calculatedGstRate = basePriceRupees > 0 ? Math.round((gstAmountRupees / (basePriceRupees - discountRupees)) * 100) : 28;
       setValue("pricing.gstRate", calculatedGstRate === 18 ? 18 : 28, { shouldValidate: true });
     }
-  }, [selectedSale, setValue, isEditMode]);
+  }, [selectedSale, setValue, isEditMode, branchOptions, executiveOptions]);
   
   // Live Pricing
   const p = watch("pricing");
@@ -311,14 +332,18 @@ export function InvoiceWizardPage() {
                                     exit={{ opacity: 0, y: -10 }}
                                     className="absolute z-50 w-full mt-1 bg-background/95 backdrop-blur-md border border-border/60 rounded-xl shadow-xl max-h-60 overflow-y-auto divide-y divide-border/50 animate-in fade-in slide-in-from-top-1 overflow-hidden"
                                   >
-                                    {filteredSales && filteredSales.length > 0 ? (
+                                    {isSalesLoading ? (
+                                      <div className="px-4 py-6 text-sm text-muted-foreground text-center animate-pulse">
+                                        Searching sales records...
+                                      </div>
+                                    ) : filteredSales && filteredSales.length > 0 ? (
                                       <div className="py-1">
                                         {filteredSales.map((s: any) => (
                                           <button
                                             key={s.id}
                                             type="button"
                                             onClick={() => {
-                                              setValue("sale.saleId", s.invoiceNumber || s.id || "", { shouldValidate: true });
+                                              setValue("sale.saleId", s.id || "", { shouldValidate: true });
                                               setIsDropdownOpen(false);
                                             }}
                                             className="w-full text-left px-4 py-3 text-sm hover:bg-primary/5 active:bg-primary/10 transition-colors flex items-center justify-between group outline-none"
@@ -474,7 +499,7 @@ export function InvoiceWizardPage() {
                       <div className="bg-muted/20 p-6 rounded-xl border border-border/50">
                          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 border-b pb-2">Invoice Summary</h4>
                          <div className="space-y-3 mb-6">
-                           <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Sale Ref:</span><span className="text-sm font-medium font-mono">{watch("sale.saleId")}</span></div>
+                           <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Sale Ref:</span><span className="text-sm font-medium font-mono">{selectedSale?.invoiceNumber || watch("sale.saleId")}</span></div>
                            <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Executive:</span><span className="text-sm font-medium">{watch("metadata.salesExecutive")}</span></div>
                          </div>
                          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 border-b pb-2">Financials</h4>

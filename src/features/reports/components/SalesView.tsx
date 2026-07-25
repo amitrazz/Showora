@@ -11,7 +11,8 @@ export const SalesView = () => {
   const { data: metrics } = useReportMetrics();
   const { data: salesData } = useSalesByModel();
   const { data: apiExecs } = useSalesExecutives();
-  const { data: salesList } = useSales();
+  const { data: salesResponse } = useSales();
+  const salesList = salesResponse?.data;
 
   if (!metrics) return <SkeletonChart />;
 

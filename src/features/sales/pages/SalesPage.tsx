@@ -1,4 +1,5 @@
-import { useSales, useSalesMetrics } from "../hooks";
+import { useSales, useSalesMetrics, useImportSales } from "../hooks";
+import { salesService } from "../services";
 import { SkeletonTable, SkeletonStatsCard } from "@/components/ui/skeleton/SkeletonTemplates";
 import { DataTable } from "@/components/common/DataTable";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -8,13 +9,14 @@ import { ColumnDef } from "@tanstack/react-table";
 import { SalesRecord } from "../types";
 import {
   Plus, Download, Upload,
-  IndianRupee, TrendingUp, HandCoins, Truck, Eye, Pencil
+  IndianRupee, TrendingUp, HandCoins, Truck, Eye, Pencil, AlertTriangle, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { EmptyState } from "@/components/common/EmptyState";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 const salesColumns: ColumnDef<SalesRecord>[] = [
@@ -127,25 +129,168 @@ const salesColumns: ColumnDef<SalesRecord>[] = [
 ];
 
 export function SalesPage() {
-  const { data: sales, isLoading } = useSales();
+  const [cursor, setCursor] = useState<string | undefined>();
+  const [previousCursors, setPreviousCursors] = useState<(string | undefined)[]>([]);
+  const { data: salesResult, isLoading } = useSales({ cursor, limit: 10 });
   const { data: metrics } = useSalesMetrics();
+  const importMutation = useImportSales();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [importErrors, setImportErrors] = useState<string[]>([]);
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
 
-  const handleExport = () => {
-    toast.success("Sales records exported to CSV");
+  const salesPage = Array.isArray(salesResult) ? null : salesResult;
+  const sales = Array.isArray(salesResult)
+    ? salesResult
+    : (salesResult?.data ?? []);
+
+  const currentPageIndex = previousCursors.length;
+
+  const goToNextPage = () => {
+    if (!salesPage?.nextCursor) return;
+    setPreviousCursors((history) => [...history, cursor ?? ""]);
+    setCursor(salesPage.nextCursor);
+  };
+
+  const goToPreviousPage = () => {
+    const previousCursor = previousCursors[previousCursors.length - 1];
+    setPreviousCursors((history) => history.slice(0, -1));
+    setCursor(previousCursor || undefined);
+  };
+
+  const exportClientCSV = (salesData: SalesRecord[]) => {
+    const headers = [
+      'Sale ID',
+      'Invoice Number',
+      'Sale Date',
+      'Status',
+      'Customer Name',
+      'Customer Phone',
+      'Vehicle Make',
+      'Vehicle Model',
+      'Vehicle Variant',
+      'VIN',
+      'Sales Executive',
+      'Branch',
+      'Base Price',
+      'Accessories Price',
+      'Registration Tax',
+      'Road Tax',
+      'Insurance',
+      'GST Amount',
+      'Discount',
+      'Exchange Bonus',
+      'Grand Total',
+      'Total Paid',
+      'Outstanding Balance',
+      'Finance Required',
+      'Finance Partner',
+      'Finance Loan Amount'
+    ];
+
+    const escapeCSV = (val: any) => {
+      if (val === null || val === undefined) return '""';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
+    const rows = salesData.map((s) => [
+      escapeCSV(s.id),
+      escapeCSV(s.invoiceNumber || ''),
+      escapeCSV(s.saleDate ? new Date(s.saleDate).toISOString().split('T')[0] : ''),
+      escapeCSV(s.status),
+      escapeCSV(s.customerName || ''),
+      escapeCSV(s.customerPhone || ''),
+      escapeCSV(s.vehicleMake || ''),
+      escapeCSV(s.vehicleModel || ''),
+      escapeCSV(s.vehicleVariant || ''),
+      escapeCSV(s.vin || ''),
+      escapeCSV(s.salesExecutive || ''),
+      escapeCSV(s.branch || ''),
+      s.basePrice || 0,
+      s.accessoriesPrice || 0,
+      s.registrationTax || 0,
+      s.roadTax || 0,
+      s.insurance || 0,
+      s.gstAmount || 0,
+      s.discount || 0,
+      s.exchangeBonus || 0,
+      s.grandTotal || 0,
+      s.totalPaid || 0,
+      s.outstandingBalance || 0,
+      escapeCSV(s.finance?.required ? 'Yes' : 'No'),
+      escapeCSV(s.finance?.partner || ''),
+      s.finance?.loanAmount || 0,
+    ].join(','));
+
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `sales_export_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      const toastId = toast.loading('Exporting sales records...');
+      try {
+        const blob = await salesService.exportSales();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `sales_export_${Date.now()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+      } catch {
+        if (sales && sales.length > 0) {
+          exportClientCSV(sales);
+        } else {
+          throw new Error('No sales records available to export.');
+        }
+      }
+      toast.dismiss(toastId);
+      toast.success('Sales records exported successfully');
+    } catch (error: any) {
+      toast.error('Failed to export sales records', {
+        description: error.message || 'An error occurred during export.',
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      toast.success(`Importing sales from ${file.name}`);
-      e.target.value = '';
-    }
+    if (!file) return;
+
+    e.target.value = '';
+
+    const toastId = toast.loading('Uploading and importing sales...');
+    importMutation.mutate(file, {
+      onSuccess: (result) => {
+        toast.dismiss(toastId);
+        if (result.errors && result.errors.length > 0) {
+          setImportErrors(result.errors);
+          setIsErrorModalOpen(true);
+        }
+      },
+      onError: () => {
+        toast.dismiss(toastId);
+      }
+    });
   };
 
   return (
@@ -156,13 +301,13 @@ export function SalesPage() {
         description="Manage vehicle sales, payments, delivery, and finance."
         action={
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" className="hidden md:flex shadow-sm" onClick={handleExport}>
+            <Button variant="outline" size="sm" className="hidden md:flex shadow-sm" onClick={handleExport} disabled={isExporting}>
               <Download className="mr-2 h-4 w-4" />
-              Export
+              {isExporting ? 'Exporting...' : 'Export'}
             </Button>
-            <Button variant="outline" size="sm" className="hidden md:flex shadow-sm" onClick={handleImportClick}>
+            <Button variant="outline" size="sm" className="hidden md:flex shadow-sm" onClick={handleImportClick} disabled={importMutation.isPending}>
               <Upload className="mr-2 h-4 w-4" />
-              Import
+              {importMutation.isPending ? 'Importing...' : 'Import'}
             </Button>
             <Link to="/sales/new">
               <Button className="shadow-sm">
@@ -209,13 +354,26 @@ export function SalesPage() {
         </div>
       )}
 
-      {isLoading ? (
+      {isLoading && !salesResult ? (
         <SkeletonTable />
-      ) : sales && sales.length > 0 ? (
+      ) : sales.length > 0 ? (
         <DataTable
           columns={salesColumns}
           data={sales}
           searchKey="invoiceNumber"
+          serverPagination={
+            salesPage
+              ? {
+                  pageIndex: currentPageIndex,
+                  pageSize: salesPage.limit ?? 10,
+                  totalCount: salesPage.totalCount ?? 0,
+                  canPreviousPage: previousCursors.length > 0,
+                  canNextPage: salesPage.hasMore ?? false,
+                  onPreviousPage: goToPreviousPage,
+                  onNextPage: goToNextPage,
+                }
+              : undefined
+          }
         />
       ) : (
         <EmptyState
@@ -226,6 +384,33 @@ export function SalesPage() {
           onAction={() => navigate({ to: '/sales/new' })}
         />
       )}
+
+      <Dialog open={isErrorModalOpen}>
+        <DialogContent className="max-w-2xl bg-card border border-border p-6 rounded-xl shadow-premium">
+          <div className="flex justify-between items-center pb-4 border-b border-border/80">
+            <div className="flex items-center gap-2 text-destructive font-semibold">
+              <AlertTriangle className="h-5 w-5" />
+              <h3>Import Verification Logs</h3>
+            </div>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setIsErrorModalOpen(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="mt-4 max-h-[300px] overflow-y-auto space-y-2 pr-2">
+            <p className="text-sm text-muted-foreground mb-3">
+              The following rows encountered issues and were not imported. Please review and update your CSV file:
+            </p>
+            {importErrors.map((err, idx) => (
+              <div key={idx} className="p-3 bg-destructive/5 text-destructive border border-destructive/10 rounded-lg text-sm font-mono">
+                {err}
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end pt-4 border-t border-border/80 mt-4">
+            <Button onClick={() => setIsErrorModalOpen(false)}>Dismiss</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

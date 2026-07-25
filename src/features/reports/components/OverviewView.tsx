@@ -20,7 +20,8 @@ export const OverviewView = () => {
   const { data: salesData } = useSalesByModel();
   const { data: inventoryData } = useInventoryDistribution();
   const { data: insights } = useInsights();
-  const { data: salesList } = useSales();
+  const { data: salesResponse } = useSales();
+  const salesList = salesResponse?.data;
   const { data: expenseList } = useExpenses();
 
   if (!metrics || !trendData) return <SkeletonChart />;
@@ -30,7 +31,8 @@ export const OverviewView = () => {
 
   const totalRev = hasSales ? salesList.reduce((sum, s) => sum + (s.grandTotal || 0), 0) : metrics.revenue;
   const totalExp = hasExpenses ? expenseList.reduce((sum, e) => sum + (e.totalAmount || 0), 0) : metrics.expenses;
-  const netProfit = totalRev - totalExp;
+  const grossProfit = hasSales ? salesList.reduce((sum, s) => sum + (s.profitMargin || (s.grandTotal - s.basePrice) || 0), 0) : metrics.profit;
+  const netProfit = grossProfit - totalExp;
   const unitsSold = hasSales ? salesList.length : metrics.unitsSold;
 
   // Dynamic Top Selling Models bar chart

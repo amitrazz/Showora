@@ -33,10 +33,16 @@ const ExpenseWorkspacePage = React.lazy(() => import("@/features/expenses/pages/
 
 const ReportsDashboardPage = React.lazy(() => import("@/features/reports/pages/ReportsDashboardPage").then(m => ({ default: m.ReportsDashboardPage })));
 const SettingsPage = React.lazy(() => import("@/features/settings/pages/SettingsPage").then(m => ({ default: m.SettingsPage })));
+const RoleListPage = React.lazy(() => import("@/features/settings/pages/RoleListPage").then(m => ({ default: m.RoleListPage })));
+const CreateRolePage = React.lazy(() => import("@/features/settings/pages/CreateRolePage").then(m => ({ default: m.CreateRolePage })));
+const RoleDetailsPage = React.lazy(() => import("@/features/settings/pages/RoleDetailsPage").then(m => ({ default: m.RoleDetailsPage })));
+
+import { ErrorBoundaryComponent } from "@/components/error/ErrorBoundaryComponent";
 
 // Root Route
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
+  errorComponent: ErrorBoundaryComponent,
 });
 
 // Layout Routes
@@ -200,6 +206,24 @@ const settingsRoute = createRoute({
   component: SettingsPage,
 });
 
+const rolesListRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: "/settings/roles",
+  component: RoleListPage,
+});
+
+const createRoleRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: "/settings/roles/new",
+  component: CreateRolePage,
+});
+
+const roleDetailsRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: "/settings/roles/$roleId",
+  component: RoleDetailsPage,
+});
+
 const inventoryEditRoute = createRoute({
   getParentRoute: () => dashboardLayoutRoute,
   path: "/inventory/$inventoryId/edit",
@@ -262,6 +286,9 @@ const routeTree = rootRoute.addChildren([
     expensesEditRoute,
     reportsRoute,
     settingsRoute,
+    rolesListRoute,
+    createRoleRoute,
+    roleDetailsRoute,
   ]),
 ]);
 

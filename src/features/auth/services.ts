@@ -21,7 +21,8 @@ export const loginService = async (data: LoginFormData): Promise<{ user: User; a
       name: decodedPayload.name || decodedPayload.email.split('@')[0],
       email: decodedPayload.email,
       role: decodedPayload.roles[0] || "user",
-      organizationId: decodedPayload.organizationId
+      organizationId: decodedPayload.organizationId,
+      permissions: decodedPayload.permissions || []
     };
   } catch {
     throw new Error("Failed to parse access token");

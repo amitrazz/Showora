@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsService } from './services';
-import { GeneralSettings, OrganizationSettings } from './types';
+import { GeneralSettings, OrganizationSettings, CreateRoleDto, UpdateRoleDto } from './types';
 import { toast } from 'sonner';
 
 export const useGeneralSettings = () => {
@@ -93,3 +93,73 @@ export const useUpdateSettings = () => {
     }
   });
 };
+
+export const usePermissions = (module?: string) => {
+  return useQuery({
+    queryKey: ['permissions', module],
+    queryFn: () => settingsService.getPermissions(module),
+  });
+};
+
+export const useRoles = (module?: string) => {
+  return useQuery({
+    queryKey: ['roles', module],
+    queryFn: () => settingsService.getRoles(module),
+  });
+};
+
+export const useRole = (id: string) => {
+  return useQuery({
+    queryKey: ['roles', id],
+    queryFn: () => settingsService.getRoleById(id),
+    enabled: !!id,
+  });
+};
+
+export const useCreateRole = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateRoleDto) => settingsService.createRole(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roles'] });
+      toast.success('Role created successfully');
+    },
+    onError: (error: any) => {
+      toast.error('Failed to create role', { description: error.response?.data?.message || error.message });
+    },
+  });
+};
+
+export const useUpdateRole = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateRoleDto }) => settingsService.updateRole(id, data),
+    onSuccess: (updatedRole) => {
+      queryClient.invalidateQueries({ queryKey: ['roles'] });
+      queryClient.invalidateQueries({ queryKey: ['roles', updatedRole.id] });
+      toast.success('Role updated successfully');
+    },
+    onError: (error: any) => {
+      toast.error('Failed to update role', { description: error.response?.data?.message || error.message });
+    },
+  });
+};
+
+export const useDeleteRole = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => settingsService.deleteRole(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['roles'] });
+      queryClient.removeQueries({ queryKey: ['roles', id] });
+      toast.success('Role deleted successfully');
+    },
+    onError: (error: any) => {
+      toast.error('Failed to delete role', { description: error.response?.data?.message || error.message });
+    },
+  });
+};
+

@@ -8,6 +8,7 @@ export interface User {
   role: string;
   organizationId?: string;
   avatar?: string;
+  permissions?: string[];
 }
 
 interface AuthState {
