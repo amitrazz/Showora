@@ -73,7 +73,7 @@ const invoiceColumns: ColumnDef<InvoiceRecord>[] = [
       const due = row.original.outstandingAmount;
       return (
         <span className={`text-sm font-medium ${due > 0 ? "text-destructive" : "text-emerald-500"}`}>
-          {due > 0 ? formatCurrency(due) : "Paid"}
+          {due > 0 ? formatCurrency(due) : "Settled"}
         </span>
       );
     },
@@ -210,14 +210,14 @@ export function InvoicePage() {
           serverPagination={
             invoicePage
               ? {
-                  pageIndex: currentPageIndex,
-                  pageSize: invoicePage.limit ?? 10,
-                  totalCount: invoicePage.totalCount ?? 0,
-                  canPreviousPage: previousCursors.length > 0,
-                  canNextPage: invoicePage.hasMore ?? false,
-                  onPreviousPage: goToPreviousPage,
-                  onNextPage: goToNextPage,
-                }
+                pageIndex: currentPageIndex,
+                pageSize: invoicePage.limit ?? 10,
+                totalCount: invoicePage.totalCount ?? 0,
+                canPreviousPage: previousCursors.length > 0,
+                canNextPage: invoicePage.hasMore ?? false,
+                onPreviousPage: goToPreviousPage,
+                onNextPage: goToNextPage,
+              }
               : undefined
           }
         />

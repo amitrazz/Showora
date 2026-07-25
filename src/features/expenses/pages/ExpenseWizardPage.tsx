@@ -69,17 +69,17 @@ export function ExpenseWizardPage() {
       },
     });
   }, [expense, reset]);
-  
+
   // Live Pricing
   const a = watch("amount");
   const totalAmount = (a.subtotal || 0) + (a.gstAmount || 0) - (a.discount || 0);
-  
+
   const paidAmount = watch("payment.paidAmount") || 0;
   const outstanding = Math.max(0, totalAmount - paidAmount);
-  
+
   const handleNext = async () => {
     let isStepValid = true;
-    
+
     if (currentStep === 0) {
       isStepValid = await trigger(["info.title", "info.category", "info.vendor", "info.branch", "info.expenseDate", "info.isRecurring", "info.recurringFrequency"] as any);
     } else if (currentStep === 1) {
@@ -87,7 +87,7 @@ export function ExpenseWizardPage() {
     } else if (currentStep === 2) {
       isStepValid = await trigger(["payment.dueDate", "payment.method", "payment.paidAmount", "payment.referenceId"] as any);
     }
-    
+
     if (isStepValid) {
       setCurrentStep(s => Math.min(s + 1, steps.length - 1));
     }
@@ -118,8 +118,8 @@ export function ExpenseWizardPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 pb-12 animate-in fade-in duration-500">
-      <PageHeader 
-        title={isEditMode ? "Edit Expense" : "Record Expense"} 
+      <PageHeader
+        title={isEditMode ? "Edit Expense" : "Record Expense"}
         description={isEditMode ? "Update details of the operational expense record." : "Draft a new operational expense, bill, or reimbursement."}
         action={
           <Button variant="outline" onClick={() => navigate({ to: "/expenses" })}>
@@ -136,11 +136,10 @@ export function ExpenseWizardPage() {
             const isCurrent = currentStep === index;
             return (
               <div key={step.id} className="flex flex-col items-center gap-2 bg-background px-2 z-10 min-w-[80px]">
-                <div 
-                  className={`flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors ${
-                    isCompleted ? "bg-primary border-primary text-primary-foreground" :
-                    isCurrent ? "border-primary text-primary" : "border-border text-muted-foreground"
-                  }`}
+                <div
+                  className={`flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors ${isCompleted ? "bg-primary border-primary text-primary-foreground" :
+                      isCurrent ? "border-primary text-primary" : "border-border text-muted-foreground"
+                    }`}
                 >
                   {isCompleted ? <Check className="h-4 w-4" /> : <span className="text-sm font-medium">{index + 1}</span>}
                 </div>
@@ -154,14 +153,14 @@ export function ExpenseWizardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        
+
         {/* Main Wizard Area */}
         <div className="lg:col-span-3">
           <Card className="overflow-hidden shadow-soft border-border/50">
             <CardContent className="p-0">
               <div className="p-6 sm:p-10 min-h-[450px] relative">
                 <AnimatePresence mode="wait">
-                  
+
                   {currentStep === 0 && (
                     <motion.div key="step0" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
                       <div className="space-y-1">
@@ -198,20 +197,20 @@ export function ExpenseWizardPage() {
                           {errors.info?.branch && <p className="text-xs text-destructive">{errors.info.branch.message}</p>}
                         </div>
                         <div className="space-y-2 col-span-1 sm:col-span-2 border-t pt-4">
-                           <div className="flex items-center gap-2">
-                             <input type="checkbox" id="isRecurring" {...register("info.isRecurring")} className="rounded border-input text-primary focus:ring-primary" />
-                             <label htmlFor="isRecurring" className="text-sm font-medium">This is a recurring expense</label>
-                           </div>
-                           {watch("info.isRecurring") && (
-                              <div className="mt-4 pl-6 border-l-2 border-primary">
-                                 <label className="text-sm font-medium mb-2 block">Frequency</label>
-                                 <select {...register("info.recurringFrequency")} className="flex h-10 w-[200px] rounded-md border border-input bg-muted/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                                   {RECURRING_FREQUENCIES.map((r) => (
-                                     <option key={r.value} value={r.value}>{r.label}</option>
-                                   ))}
-                                 </select>
-                              </div>
-                           )}
+                          <div className="flex items-center gap-2">
+                            <input type="checkbox" id="isRecurring" {...register("info.isRecurring")} className="rounded border-input text-primary focus:ring-primary" />
+                            <label htmlFor="isRecurring" className="text-sm font-medium">This is a recurring expense</label>
+                          </div>
+                          {watch("info.isRecurring") && (
+                            <div className="mt-4 pl-6 border-l-2 border-primary">
+                              <label className="text-sm font-medium mb-2 block">Frequency</label>
+                              <select {...register("info.recurringFrequency")} className="flex h-10 w-[200px] rounded-md border border-input bg-muted/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                {RECURRING_FREQUENCIES.map((r) => (
+                                  <option key={r.value} value={r.value}>{r.label}</option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </motion.div>
@@ -289,18 +288,18 @@ export function ExpenseWizardPage() {
                         <p className="text-sm text-muted-foreground">Upload bills, receipts, or invoices.</p>
                       </div>
                       <div className="pt-4">
-                         <div className="border-2 border-dashed border-border/60 rounded-xl p-12 flex flex-col items-center justify-center bg-muted/10 hover:bg-muted/30 transition-colors cursor-pointer group">
-                            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                               <UploadCloud className="h-6 w-6 text-primary" />
-                            </div>
-                            <h4 className="text-sm font-medium mb-1">Click to upload or drag and drop</h4>
-                            <p className="text-xs text-muted-foreground text-center max-w-[250px]">
-                               SVG, PNG, JPG or PDF (max. 10MB)
-                            </p>
-                         </div>
-                         <p className="text-xs text-muted-foreground mt-4 italic text-center">
-                           (Uploads are mocked in this environment)
-                         </p>
+                        <div className="border-2 border-dashed border-border/60 rounded-xl p-12 flex flex-col items-center justify-center bg-muted/10 hover:bg-muted/30 transition-colors cursor-pointer group">
+                          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <UploadCloud className="h-6 w-6 text-primary" />
+                          </div>
+                          <h4 className="text-sm font-medium mb-1">Click to upload or drag and drop</h4>
+                          <p className="text-xs text-muted-foreground text-center max-w-[250px]">
+                            SVG, PNG, JPG or PDF (max. 10MB)
+                          </p>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-4 italic text-center">
+                          (Uploads are mocked in this environment)
+                        </p>
                       </div>
                     </motion.div>
                   )}
@@ -312,37 +311,37 @@ export function ExpenseWizardPage() {
                         <h3 className="text-lg font-medium">Review & Submit</h3>
                       </div>
                       <p className="text-sm text-muted-foreground -mt-4">Ensure all details are correct before sending for approval.</p>
-                      
-                      <div className="bg-muted/20 p-6 rounded-xl border border-border/50 space-y-6">
-                         <div>
-                           <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 border-b pb-2">Information</h4>
-                           <div className="space-y-3">
-                             <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Title:</span><span className="text-sm font-medium">{watch("info.title")}</span></div>
-                             <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Vendor:</span><span className="text-sm font-medium">{watch("info.vendor")}</span></div>
-                             <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Category:</span><span className="text-sm font-medium">{watch("info.category")}</span></div>
-                           </div>
-                         </div>
 
-                         <div>
-                           <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 border-b pb-2">Financials</h4>
-                           <div className="space-y-2">
-                             <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Subtotal:</span><span className="text-sm font-medium font-mono">{formatCurrency(a.subtotal || 0)}</span></div>
-                             <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">GST:</span><span className="text-sm font-medium font-mono">{formatCurrency(a.gstAmount || 0)}</span></div>
-                             <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Grand Total:</span><span className="text-sm font-bold font-mono">{formatCurrency(totalAmount)}</span></div>
-                           </div>
-                         </div>
+                      <div className="bg-muted/20 p-6 rounded-xl border border-border/50 space-y-6">
+                        <div>
+                          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 border-b pb-2">Information</h4>
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Title:</span><span className="text-sm font-medium">{watch("info.title")}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Vendor:</span><span className="text-sm font-medium">{watch("info.vendor")}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Category:</span><span className="text-sm font-medium">{watch("info.category")}</span></div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 border-b pb-2">Financials</h4>
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Subtotal:</span><span className="text-sm font-medium font-mono">{formatCurrency(a.subtotal || 0)}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">GST:</span><span className="text-sm font-medium font-mono">{formatCurrency(a.gstAmount || 0)}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Grand Total:</span><span className="text-sm font-bold font-mono">{formatCurrency(totalAmount)}</span></div>
+                          </div>
+                        </div>
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
-              
+
               {/* Footer Actions */}
               <div className="flex items-center justify-between border-t p-6 bg-muted/20">
                 <Button variant="outline" onClick={handleBack} disabled={currentStep === 0} className="shadow-sm">
                   <ChevronLeft className="mr-2 h-4 w-4" /> Back
                 </Button>
-                
+
                 {currentStep < steps.length - 1 ? (
                   <Button onClick={handleNext} className="shadow-sm">
                     Next <ChevronRight className="ml-2 h-4 w-4" />
@@ -367,12 +366,12 @@ export function ExpenseWizardPage() {
                 <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="font-mono">{formatCurrency(a.subtotal || 0)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">GST</span><span className="font-mono">{formatCurrency(a.gstAmount || 0)}</span></div>
                 {a.discount > 0 && <div className="flex justify-between text-destructive"><span className="text-destructive/80">Discount</span><span className="font-mono">-{formatCurrency(a.discount || 0)}</span></div>}
-                
+
                 <div className="border-t border-border/50 pt-3 flex justify-between font-bold text-base mt-2">
                   <span>Grand Total</span>
                   <span className="font-mono">{formatCurrency(totalAmount)}</span>
                 </div>
-                
+
                 <div className="border-t border-border/50 pt-4 mt-4">
                   <div className="flex justify-between text-emerald-600 font-medium"><span>Paid</span><span className="font-mono">{formatCurrency(paidAmount)}</span></div>
                   <div className="flex justify-between text-destructive font-medium mt-1"><span>Balance Due</span><span className="font-mono">{formatCurrency(outstanding)}</span></div>
