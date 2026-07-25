@@ -19,38 +19,14 @@ export const InventoryView = () => {
   const inventoryList: InventoryVehicle[] = Array.isArray(inventoryRes)
     ? inventoryRes
     : (inventoryRes?.data ?? []);
-  const hasInventory = inventoryList.length > 0;
 
-  const totalValue = hasInventory 
-    ? inventoryList.reduce((sum: number, v: InventoryVehicle) => sum + (v.purchaseCost || 0), 0)
-    : metrics.inventoryValue;
+  const totalValue = metrics.inventoryValue || 0;
 
-  const unitsAvailable = hasInventory
-    ? inventoryList.filter((v: InventoryVehicle) => v.status === 'Available').length
-    : 65;
+  const unitsAvailable = healthData?.reduce((sum, item) => sum + item.available, 0) ?? 65;
+  const unitsReserved = healthData?.reduce((sum, item) => sum + item.reserved, 0) ?? 20;
+  const deadStock = 3; // Placeholder or add to backend later
 
-  const unitsReserved = hasInventory
-    ? inventoryList.filter((v: InventoryVehicle) => v.status === 'Reserved').length
-    : 20;
-
-  const deadStock = hasInventory
-    ? inventoryList.filter((v: InventoryVehicle) => (v.daysInInventory || 0) > 90).length
-    : 3;
-
-  // Compute live model health matrix
-  const modelMap = new Map<string, { model: string; available: number; reserved: number }>();
-  if (hasInventory) {
-    inventoryList.forEach((v: InventoryVehicle) => {
-      const modelName = `${v.make} ${v.model}`;
-      const existing = modelMap.get(modelName) || { model: modelName, available: 0, reserved: 0 };
-      if (v.status === 'Available') existing.available += 1;
-      if (v.status === 'Reserved') existing.reserved += 1;
-      modelMap.set(modelName, existing);
-    });
-  }
-
-  const computedHealthData = Array.from(modelMap.values());
-  const activeHealthData = computedHealthData.length > 0 ? computedHealthData : (healthData || []);
+  const activeHealthData = healthData || [];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">

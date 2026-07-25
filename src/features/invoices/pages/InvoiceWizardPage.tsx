@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { GST_RATES, INVOICE_PAYMENT_METHODS, SALES_EXECUTIVES, BRANCHES } from "@/constants/staticDropdowns";
 import { useSalesExecutives } from "@/features/users/hooks";
@@ -80,32 +80,38 @@ export function InvoiceWizardPage() {
         (s.invoiceNumber && s.invoiceNumber === selectedSaleId)
     ) || fetchedSelectedSale;
 
-  const rawExecOptions = (apiExecutives && apiExecutives.length > 0)
-    ? apiExecutives.map(u => {
-        const name = [u.firstName, u.lastName].filter(Boolean).join(" ");
-        const val = name || u.email;
-        return { value: val, label: name ? `${name} (${u.email})` : u.email };
-      })
-    : SALES_EXECUTIVES;
+  const executiveOptions = useMemo(() => {
+    const rawExecOptions = (apiExecutives && apiExecutives.length > 0)
+      ? apiExecutives.map(u => {
+          const name = [u.firstName, u.lastName].filter(Boolean).join(" ");
+          const val = name || u.email;
+          return { value: val, label: name ? `${name} (${u.email})` : u.email };
+        })
+      : SALES_EXECUTIVES;
 
-  const executiveOptions = [...rawExecOptions];
-  [currentExecValue, selectedSale?.salesExecutive, invoice?.salesExecutive].forEach(exec => {
-    if (exec && !executiveOptions.some(x => x.value.toLowerCase() === exec.toLowerCase() || x.label.toLowerCase() === exec.toLowerCase())) {
-      executiveOptions.unshift({ value: exec, label: exec });
-    }
-  });
+    const options = [...rawExecOptions];
+    [currentExecValue, selectedSale?.salesExecutive, invoice?.salesExecutive].forEach(exec => {
+      if (exec && !options.some(x => x.value.toLowerCase() === exec.toLowerCase() || x.label.toLowerCase() === exec.toLowerCase())) {
+        options.unshift({ value: exec, label: exec });
+      }
+    });
+    return options;
+  }, [apiExecutives, currentExecValue, selectedSale?.salesExecutive, invoice?.salesExecutive]);
 
   const { data: apiBranches } = useBranches();
-  const rawBranchOptions = (apiBranches && apiBranches.length > 0)
-    ? apiBranches.map(b => ({ value: b.name, label: b.name }))
-    : BRANCHES;
+  const branchOptions = useMemo(() => {
+    const rawBranchOptions = (apiBranches && apiBranches.length > 0)
+      ? apiBranches.map(b => ({ value: b.name, label: b.name }))
+      : BRANCHES;
 
-  const branchOptions = [...rawBranchOptions];
-  [currentBranchValue, selectedSale?.branch, invoice?.branch].forEach(br => {
-    if (br && !branchOptions.some(b => b.value.toLowerCase() === br.toLowerCase() || b.label.toLowerCase() === br.toLowerCase())) {
-      branchOptions.unshift({ value: br, label: br });
-    }
-  });
+    const options = [...rawBranchOptions];
+    [currentBranchValue, selectedSale?.branch, invoice?.branch].forEach(br => {
+      if (br && !options.some(b => b.value.toLowerCase() === br.toLowerCase() || b.label.toLowerCase() === br.toLowerCase())) {
+        options.unshift({ value: br, label: br });
+      }
+    });
+    return options;
+  }, [apiBranches, currentBranchValue, selectedSale?.branch, invoice?.branch]);
 
   const filteredSales = sales.filter(s => 
     s && 
