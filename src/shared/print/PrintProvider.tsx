@@ -183,8 +183,7 @@ export const PrintProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           style={{
             position: "fixed",
             top: 0,
-            left: 0,
-            visibility: "hidden",
+            left: "-10000px",
             pointerEvents: "none",
             width: "210mm",
             background: "#fff",

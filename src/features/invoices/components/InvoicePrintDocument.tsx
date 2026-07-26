@@ -1,7 +1,6 @@
 import React from "react";
 import { format } from "date-fns";
 import { InvoiceRecord } from "../types";
-import logo from "@/assets/riya-enterprises.png";
 
 interface InvoicePrintDocumentProps {
   invoice: InvoiceRecord;
@@ -18,12 +17,9 @@ export const InvoicePrintDocument: React.FC<InvoicePrintDocumentProps> = ({ invo
         </div>
 
         <div className="border border-black border-b-0 flex">
-          <div className="w-[200px] h-[200px] overflow-hidden">
-            <img
-              src={logo}
-              alt="Riya Enterprises"
-              className="w-full h-full object-cover"
-            />
+          <div className="w-[200px] bg-[#f26522] text-white flex flex-col items-center justify-center p-4">
+            <h1 className="text-3xl font-bold tracking-tighter">KOMAKI<sup className="text-sm">®</sup></h1>
+            <p className="text-[8px] mt-1 text-center font-medium tracking-wider">ELECTRIC VEHICLE DIVISION</p>
           </div>
           <div className="flex-1 p-3">
             <h2 className="text-xl font-semibold mb-2">Riya Enterprises</h2>
@@ -107,95 +103,77 @@ export const InvoicePrintDocument: React.FC<InvoicePrintDocumentProps> = ({ invo
         </table>
 
         {/* Tax Summary Complex Table */}
-        <div className="border border-t-0 border-black flex flex-col text-[11px]">
-          <div className="flex border-b border-black">
-            <div className="flex-[3] p-1 bg-gray-100 font-semibold border-r border-black">Tax Summary:</div>
-            <div className="flex-[2] flex">
-              <div className="flex-1 p-1 bg-gray-50 border-r border-black">Sub Total :</div>
-              <div className="w-24 p-1 font-semibold text-right">₹{(invoice.taxableAmount + invoice.totalGst).toFixed(2)}</div>
-            </div>
-          </div>
+        <table className="w-full table-fixed border-collapse border border-t-0 border-black text-[11px]">
+          <colgroup>
+            <col className="w-[8%]" />
+            <col className="w-[10%]" />
+            <col className="w-[7%]" />
+            <col className="w-[9%]" />
+            <col className="w-[7%]" />
+            <col className="w-[9%]" />
+            <col className="w-[8%]" />
+            <col className="w-[24%]" />
+            <col className="w-[18%]" />
+          </colgroup>
+          <tbody>
+            <tr className="border-b border-black">
+              <td colSpan={7} className="p-1 bg-gray-100 font-semibold border-r border-black">Tax Summary:</td>
+              <td className="p-1 bg-gray-50 border-r border-black">Sub Total :</td>
+              <td className="p-1 font-semibold text-right">₹{(invoice.taxableAmount + invoice.totalGst).toFixed(2)}</td>
+            </tr>
 
-          <div className="flex">
-            <div className="flex-[3] border-r border-black flex flex-col">
-              {/* Headers */}
-              <div className="flex border-b border-black text-center bg-gray-50">
-                <div className="w-20 border-r border-black p-1 flex items-center justify-center">HSN/ SAC</div>
-                <div className="w-24 border-r border-black p-1 flex items-center justify-center">Taxable Amount<br />(₹)</div>
-                <div className="flex-1 border-r border-black">
-                  <div className="border-b border-black p-0.5">CGST</div>
-                  <div className="flex">
-                    <div className="flex-1 border-r border-black p-0.5">Rate (%)</div>
-                    <div className="flex-1 p-0.5">Amt (₹)</div>
-                  </div>
-                </div>
-                <div className="flex-1 border-r border-black">
-                  <div className="border-b border-black p-0.5">SGST</div>
-                  <div className="flex">
-                    <div className="flex-1 border-r border-black p-0.5">Rate (%)</div>
-                    <div className="flex-1 p-0.5">Amt (₹)</div>
-                  </div>
-                </div>
-                <div className="w-20 p-1 flex items-center justify-center">Total Tax(₹)</div>
-              </div>
+            {/* Header row 1 */}
+            <tr className="text-center bg-gray-50 border-b border-black">
+              <td rowSpan={2} className="border-r border-black p-1 align-middle">HSN/ SAC</td>
+              <td rowSpan={2} className="border-r border-black p-1 align-middle">Taxable Amount (₹)</td>
+              <td colSpan={2} className="border-r border-black p-0.5 border-b border-black">CGST</td>
+              <td colSpan={2} className="border-r border-black p-0.5 border-b border-black">SGST</td>
+              <td rowSpan={2} className="border-r border-black p-1 align-middle">Total Tax(₹)</td>
+              <td rowSpan={2} className="p-1 font-semibold border-r border-black align-middle">Total :</td>
+              <td rowSpan={2} className="p-1 text-right font-semibold align-middle">₹{invoice.grandTotal.toFixed(2)}</td>
+            </tr>
+            {/* Header row 2 (rate/amt sub-labels) */}
+            <tr className="text-center bg-gray-50 border-b border-black">
+              <td className="border-r border-black p-0.5">Rate (%)</td>
+              <td className="border-r border-black p-0.5">Amt (₹)</td>
+              <td className="border-r border-black p-0.5">Rate (%)</td>
+              <td className="border-r border-black p-0.5">Amt (₹)</td>
+            </tr>
 
-              {/* Values */}
-              <div className="flex border-b border-black text-center">
-                <div className="w-20 border-r border-black p-1">85116020</div>
-                <div className="w-24 border-r border-black p-1">₹{invoice.taxableAmount.toFixed(2)}</div>
-
-                <div className="flex-1 border-r border-black flex">
-                  <div className="flex-1 border-r border-black p-1">{invoice.cgstRate.toFixed(2)}%</div>
-                  <div className="flex-1 p-1">₹{invoice.cgstAmount.toFixed(2)}</div>
-                </div>
-
-                <div className="flex-1 border-r border-black flex">
-                  <div className="flex-1 border-r border-black p-1">{invoice.sgstRate.toFixed(2)}%</div>
-                  <div className="flex-1 p-1">₹{invoice.sgstAmount.toFixed(2)}</div>
-                </div>
-
-                <div className="w-20 p-1">₹{invoice.totalGst.toFixed(2)}</div>
-              </div>
-
-              {/* Total */}
-              <div className="flex font-semibold">
-                <div className="w-20 border-r border-black p-1 text-left">TOTAL</div>
-                <div className="w-24 border-r border-black p-1 text-center">₹{invoice.taxableAmount.toFixed(2)}</div>
-
-                <div className="flex-1 border-r border-black flex">
-                  <div className="flex-1 border-r border-black p-1"></div>
-                  <div className="flex-1 p-1 text-center">₹{invoice.cgstAmount.toFixed(2)}</div>
-                </div>
-
-                <div className="flex-1 border-r border-black flex">
-                  <div className="flex-1 border-r border-black p-1"></div>
-                  <div className="flex-1 p-1 text-center">₹{invoice.sgstAmount.toFixed(2)}</div>
-                </div>
-
-                <div className="w-20 p-1 text-center">₹{invoice.totalGst.toFixed(2)}</div>
-              </div>
-            </div>
-
-            <div className="flex-[2] flex flex-col">
-              <div className="flex border-b border-black">
-                <div className="flex-1 p-1 font-semibold border-r border-black">Total :</div>
-                <div className="w-24 p-1 text-right font-semibold">₹{invoice.grandTotal.toFixed(2)}</div>
-              </div>
-              <div className="border-b border-black p-1">
+            {/* Values + Amount in words */}
+            <tr className="text-center border-b border-black">
+              <td className="border-r border-black p-1 align-middle">85116020</td>
+              <td className="border-r border-black p-1 align-middle">₹{invoice.taxableAmount.toFixed(2)}</td>
+              <td className="border-r border-black p-1 align-middle">{invoice.cgstRate.toFixed(2)}%</td>
+              <td className="border-r border-black p-1 align-middle">₹{invoice.cgstAmount.toFixed(2)}</td>
+              <td className="border-r border-black p-1 align-middle">{invoice.sgstRate.toFixed(2)}%</td>
+              <td className="border-r border-black p-1 align-middle">₹{invoice.sgstAmount.toFixed(2)}</td>
+              <td className="border-r border-black p-1 align-middle">₹{invoice.totalGst.toFixed(2)}</td>
+              <td colSpan={2} className="p-1 text-left align-top">
                 <span className="font-semibold">Invoice Amount In Words :</span><br />
                 <span className="font-bold">{numberToWords(invoice.grandTotal)}</span>
-              </div>
-              <div className="flex border-b border-black">
-                <div className="flex-1 p-1 font-semibold border-r border-black">Received</div>
-                <div className="w-24 p-1 text-right">₹{invoice.amountPaid.toFixed(2)}</div>
-              </div>
-              <div className="flex">
-                <div className="flex-1 p-1 font-semibold border-r border-black">Balance</div>
-                <div className="w-24 p-1 text-right">₹{invoice.outstandingAmount.toFixed(2)}</div>
-              </div>
-            </div>
-          </div>
-        </div>
+              </td>
+            </tr>
+
+            {/* Total + Received */}
+            <tr className="font-semibold text-center border-b border-black">
+              <td rowSpan={2} className="border-r border-black p-1 text-left align-middle">TOTAL</td>
+              <td rowSpan={2} className="border-r border-black p-1 align-middle">₹{invoice.taxableAmount.toFixed(2)}</td>
+              <td rowSpan={2} className="border-r border-black p-1"></td>
+              <td rowSpan={2} className="border-r border-black p-1 align-middle">₹{invoice.cgstAmount.toFixed(2)}</td>
+              <td rowSpan={2} className="border-r border-black p-1"></td>
+              <td rowSpan={2} className="border-r border-black p-1 align-middle">₹{invoice.sgstAmount.toFixed(2)}</td>
+              <td rowSpan={2} className="border-r border-black p-1 align-middle">₹{invoice.totalGst.toFixed(2)}</td>
+              <td className="p-1 font-semibold border-r border-black text-left">Received</td>
+              <td className="p-1 text-right">₹{invoice.amountPaid.toFixed(2)}</td>
+            </tr>
+            {/* Balance */}
+            <tr className="font-semibold">
+              <td className="p-1 font-semibold border-r border-black text-left">Balance</td>
+              <td className="p-1 text-right">₹{invoice.outstandingAmount.toFixed(2)}</td>
+            </tr>
+          </tbody>
+        </table>
 
         {/* Footer Boxes */}
         <div className="border border-t-0 border-black flex text-[11px] min-h-[140px]">
