@@ -252,13 +252,13 @@ export function LoginPage() {
                       <span>Authenticating...</span>
                     </div>
                   ) : (
-                    <span>Sign In to {appName}</span>
+                    <span>Sign In to Workspace</span>
                   )}
                 </Button>
 
                 <div className="pt-8 text-center text-sm font-medium text-slate-500">
-                  Built with modern SaaS architecture by{' '}
-                  <span className="font-bold text-slate-900">Showora</span>
+                  Built for reliability, performance, and
+                  <span className="font-bold text-slate-900">scale .</span>
                 </div>
               </form>
             </CardContent>
