@@ -2,15 +2,15 @@ import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { useSidebarStore, useAuthStore } from "@/store";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  LayoutDashboard, 
-  Users, 
-  Bike, 
-  IndianRupee, 
-  ShoppingCart, 
-  Receipt, 
-  Wallet, 
-  BarChart3, 
+import {
+  LayoutDashboard,
+  Users,
+  Bike,
+  IndianRupee,
+  ShoppingCart,
+  Receipt,
+  Wallet,
+  BarChart3,
   Settings as SettingsIcon,
   ChevronLeft,
   ChevronsUpDown,
@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useLogout } from "@/features/auth/hooks";
 import { useGeneralSettings } from "@/features/settings/hooks";
+import { useMemo } from "react";
 
 const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, permission: "showora:dashboard:read" },
@@ -41,9 +42,27 @@ export function Sidebar() {
   const navigate = useNavigate();
   const logoutMutation = useLogout();
 
+  const appName = useMemo(() => {
+    if (typeof window === 'undefined') return 'SHOWORA';
+
+    const hostname = window.location.hostname;
+    const parts = hostname.split('.');
+
+    if (parts.length >= 3 && parts[0] !== 'www') {
+      const subdomain = parts[0];
+
+      return subdomain
+        .split('-')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+    }
+
+    return 'SHOWORA';
+  }, []);
+
   return (
     <motion.aside
-      animate={{ 
+      animate={{
         width: isOpen ? 260 : 72,
       }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -63,32 +82,32 @@ export function Sidebar() {
                 className="flex flex-col whitespace-nowrap cursor-pointer"
                 onClick={() => navigate({ to: "/settings" })}
               >
-                <span className="text-sm font-bold leading-none">{generalSettings?.showroomName || "Showora"}</span>
-                <span className="text-xs text-muted-foreground">Free Plan</span>
+                <span className="text-sm font-bold leading-none">{generalSettings?.showroomName || appName}</span>
+                {/* <span className="text-xs text-muted-foreground">Free Plan</span> */}
               </motion.div>
             )}
           </AnimatePresence>
         </div>
-        
+
         <AnimatePresence>
           {isOpen && (
-             <motion.div initial={{opacity: 0}} animate={{opacity: 1}} exit={{opacity: 0}}>
-               <Button 
-                 variant="ghost" 
-                 size="icon" 
-                 className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0 ml-2"
-                 onClick={() => navigate({ to: "/settings" })}
-                 title="Showroom Settings"
-               >
-                 <ChevronsUpDown className="h-4 w-4" />
-               </Button>
-             </motion.div>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0 ml-2"
+                onClick={() => navigate({ to: "/settings" })}
+                title="Showroom Settings"
+              >
+                <ChevronsUpDown className="h-4 w-4" />
+              </Button>
+            </motion.div>
           )}
         </AnimatePresence>
 
-        <Button 
-          variant="ghost" 
-          size="icon" 
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={toggle}
           className={cn(
             "absolute -right-3.5 top-5 h-7 w-7 rounded-full border bg-background shadow-md",
@@ -113,8 +132,8 @@ export function Sidebar() {
               to={item.href}
               className={cn(
                 "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 group",
-                isActive 
-                  ? "text-primary bg-primary/10" 
+                isActive
+                  ? "text-primary bg-primary/10"
                   : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
                 !isOpen && "justify-center px-0"
               )}
@@ -171,9 +190,9 @@ export function Sidebar() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                 >
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="h-8 w-8 text-muted-foreground hover:text-destructive"
                     onClick={() => logoutMutation.mutate()}
                     disabled={logoutMutation.isPending}
