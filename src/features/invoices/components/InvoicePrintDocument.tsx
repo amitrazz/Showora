@@ -1,6 +1,7 @@
 import React from "react";
 import { format } from "date-fns";
 import { InvoiceRecord } from "../types";
+import logo from "@/assets/riya-enterprises.png";
 
 interface InvoicePrintDocumentProps {
   invoice: InvoiceRecord;
@@ -17,9 +18,12 @@ export const InvoicePrintDocument: React.FC<InvoicePrintDocumentProps> = ({ invo
         </div>
 
         <div className="border border-black border-b-0 flex">
-          <div className="w-[200px] bg-[#f26522] text-white flex flex-col items-center justify-center p-4">
-            <h1 className="text-3xl font-bold tracking-tighter">KOMAKI<sup className="text-sm">®</sup></h1>
-            <p className="text-[8px] mt-1 text-center font-medium tracking-wider">ELECTRIC VEHICLE DIVISION</p>
+          <div className="w-[200px] h-[200px] overflow-hidden">
+            <img
+              src={logo}
+              alt="Riya Enterprises"
+              className="w-full h-full object-cover"
+            />
           </div>
           <div className="flex-1 p-3">
             <h2 className="text-xl font-semibold mb-2">Riya Enterprises</h2>
