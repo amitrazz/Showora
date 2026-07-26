@@ -9,7 +9,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Bike, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useLogin } from '../hooks';
 import { LoginFormData, loginSchema } from '../schemas';
@@ -17,6 +17,28 @@ import { LoginFormData, loginSchema } from '../schemas';
 export function LoginPage() {
   const { mutate: login, isPending, error } = useLogin();
   const [showPassword, setShowPassword] = useState(false);
+
+  // Extract and format the app name from the URL
+  const appName = useMemo(() => {
+    if (typeof window === 'undefined') return 'SHOWORA';
+
+    const hostname = window.location.hostname;
+    const parts = hostname.split('.');
+
+    // Check if it's a subdomain (e.g., riya-enterprises.amitrazz.in)
+    // Ignore 'www' or standard 2-part domains (like amitrazz.in or localhost)
+    if (parts.length >= 3 && parts[0] !== 'www') {
+      const subdomain = parts[0];
+
+      // Convert 'riya-enterprises' to 'Riya Enterprises'
+      return subdomain
+        .split('-')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+    }
+
+    return 'SHOWORA'; // Fallback
+  }, []);
 
   const {
     register,
@@ -64,10 +86,10 @@ export function LoginPage() {
                 <Bike className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold tracking-widest text-white">
-                  SHOWORA
+                <h1 className="text-xl font-bold tracking-widest text-white uppercase">
+                  {appName}
                 </h1>
-                <p className="text-xs font-medium tracking-wide text-slate-400">
+                <p className="text-xs font-medium tracking-wide text-slate-400 uppercase">
                   ENTERPRISE DEALERSHIP OS
                 </p>
               </div>
@@ -117,7 +139,7 @@ export function LoginPage() {
 
             {/* Footer */}
             <div className="text-sm font-medium text-slate-500 animate-in fade-in duration-1000 delay-300 fill-mode-both">
-              © {new Date().getFullYear()} Showora. All rights reserved.
+              © {new Date().getFullYear()} {appName}. All rights reserved.
             </div>
           </div>
         </div>
