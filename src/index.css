@@ -145,6 +145,11 @@
 }
 
 @media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
   aside,
   header,
   nav,
@@ -161,6 +166,8 @@
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   div.flex-1 {

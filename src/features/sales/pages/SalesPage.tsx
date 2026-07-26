@@ -37,6 +37,20 @@ const salesColumns: ColumnDef<SalesRecord>[] = [
     ),
   },
   {
+    id: "vehicle",
+    accessorFn: (row) => `${row.vehicleMake} ${row.vehicleModel} ${row.vehicleVariant}`,
+    header: "Vehicle",
+    cell: ({ row }) => {
+      const sale = row.original;
+      return (
+        <div className="flex flex-col">
+          <span className="text-sm font-medium">{sale.vehicleMake} {sale.vehicleModel}</span>
+          <span className="text-xs text-muted-foreground font-mono">{sale.vin}</span>
+        </div>
+      );
+    },
+  },
+  {
     accessorKey: "customerName",
     header: "Customer",
     cell: ({ row }) => {
@@ -56,56 +70,60 @@ const salesColumns: ColumnDef<SalesRecord>[] = [
     },
   },
   {
-    id: "vehicle",
-    accessorFn: (row) => `${row.vehicleMake} ${row.vehicleModel} ${row.vehicleVariant}`,
-    header: "Vehicle",
-    cell: ({ row }) => {
-      const sale = row.original;
-      return (
-        <div className="flex flex-col">
-          <span className="text-sm font-medium">{sale.vehicleMake} {sale.vehicleModel}</span>
-          <span className="text-xs text-muted-foreground font-mono">{sale.vin}</span>
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => {
-      const status = row.original.status;
-      const variants: Record<string, string> = {
-        'Draft': "bg-muted text-muted-foreground",
-        'Quotation': "bg-muted text-muted-foreground",
-        'Reserved': "bg-blue-500/10 text-blue-500",
-        'Payment Pending': "bg-amber-500/10 text-amber-500",
-        'Finance Processing': "bg-orange-500/10 text-orange-500",
-        'Ready For Delivery': "bg-emerald-500/10 text-emerald-500",
-        'Delivered': "bg-purple-500/10 text-purple-500",
-        'Cancelled': "bg-destructive/10 text-destructive",
-        'Refunded': "bg-destructive/10 text-destructive",
-      };
-      return (
-        <Badge variant="outline" className={`border-transparent whitespace-nowrap ${variants[status] || "bg-muted"}`}>
-          {status}
-        </Badge>
-      );
-    },
-  },
-  {
     accessorKey: "grandTotal",
     header: "Total",
     cell: ({ row }) => <span className="text-sm font-medium">{formatCurrency(row.original.grandTotal)}</span>,
   },
   {
-    accessorKey: "outstandingBalance",
-    header: "Outstanding",
+    accessorKey: "paymentMethod",
+    header: "Payment",
     cell: ({ row }) => {
-      const amount = row.original.outstandingBalance;
+      const outstanding = row.original.outstandingBalance;
+      const totalPaid = row.original.totalPaid;
+
+      const payment = (() => {
+        if (outstanding === 0) {
+          return {
+            label: "Paid",
+            className: "bg-green-100 text-green-700",
+          };
+        }
+
+        if (totalPaid > 0) {
+          return {
+            label: `Due ${formatCurrency(outstanding)}`,
+            className: "bg-red-100 text-orange-500",
+          };
+        }
+
+        return {
+          label: "Unpaid",
+          className: "bg-red-100 text-red-700",
+        };
+      })();
+
       return (
-        <span className={`text-sm font-medium ${amount > 0 ? "text-destructive" : "text-emerald-500"}`}>
-          {amount > 0 ? formatCurrency(amount) : "Settled"}
-        </span>
+        <Badge variant="outline" className={`border-transparent whitespace-nowrap ${payment.className}`}>
+          {payment.label}
+        </Badge>
+      );
+    },
+  },
+  {
+    accessorKey: "delivery.status",
+    header: "Delivery Status",
+    cell: ({ row }) => {
+      const status = row.original?.delivery?.status || "Scheduled";
+      const variants: Record<string, string> = {
+        "Scheduled": "bg-muted text-muted-foreground",
+        "En-Route": "bg-blue-500/10 text-blue-500",
+        "Delivered": "bg-purple-500/10 text-purple-500",
+        "Cancelled": "bg-destructive/10 text-destructive",
+      };
+      return (
+        <Badge variant="outline" className={`border-transparent whitespace-nowrap ${variants[status] || "bg-muted"}`}>
+          {status}
+        </Badge>
       );
     },
   },
