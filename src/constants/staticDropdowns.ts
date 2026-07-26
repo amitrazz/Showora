@@ -17,37 +17,98 @@ export const CONTACT_METHODS = [
 ];
 
 export const FUEL_TYPES = [
-  { value: "Petrol", label: "Petrol" },
   { value: "Electric", label: "Electric" },
+  { value: "Petrol", label: "Petrol" },
   { value: "Hybrid", label: "Hybrid" }
 ];
 
 export const TRANSMISSIONS = [
-  { value: "Manual", label: "Manual" },
-  { value: "Automatic", label: "Automatic" }
+  { value: "Automatic", label: "Automatic" },
+  { value: "Manual", label: "Manual" }
 ];
 
 export const STORAGE_LOCATIONS = [
-  { value: "Warehouse", label: "Warehouse" },
   { value: "Showroom", label: "Showroom (Display)" },
+  { value: "Warehouse", label: "Warehouse" },
   { value: "Branch", label: "Branch Location" }
 ];
 
 export const FINANCE_PARTNERS = [
   { value: "HDFC Bank", label: "HDFC Bank" },
   { value: "ICICI Bank", label: "ICICI Bank" },
-  { value: "IDFC First", label: "IDFC First" },
-  { value: "Bajaj Finance", label: "Bajaj Finance" }
+  { value: "State Bank of India (SBI)", label: "State Bank of India (SBI)" },
+  { value: "Axis Bank", label: "Axis Bank" },
+  { value: "Kotak Mahindra Bank", label: "Kotak Mahindra Bank" },
+  { value: "IndusInd Bank", label: "IndusInd Bank" },
+  { value: "IDFC FIRST Bank", label: "IDFC FIRST Bank" },
+  { value: "Federal Bank", label: "Federal Bank" },
+  { value: "Canara Bank", label: "Canara Bank" },
+  { value: "Punjab National Bank (PNB)", label: "Punjab National Bank (PNB)" },
+  { value: "Bank of Baroda", label: "Bank of Baroda" },
+  { value: "Union Bank of India", label: "Union Bank of India" },
+  { value: "Indian Bank", label: "Indian Bank" },
+  { value: "Bank of India", label: "Bank of India" },
+  { value: "Central Bank of India", label: "Central Bank of India" },
+  { value: "UCO Bank", label: "UCO Bank" },
+  { value: "Punjab & Sind Bank", label: "Punjab & Sind Bank" },
+  { value: "Indian Overseas Bank", label: "Indian Overseas Bank" },
+  { value: "Yes Bank", label: "Yes Bank" },
+  { value: "South Indian Bank", label: "South Indian Bank" },
+  { value: "Karur Vysya Bank", label: "Karur Vysya Bank" },
+  { value: "Tamilnad Mercantile Bank", label: "Tamilnad Mercantile Bank" },
+  { value: "Karnataka Bank", label: "Karnataka Bank" },
+  { value: "RBL Bank", label: "RBL Bank" },
+  { value: "AU Small Finance Bank", label: "AU Small Finance Bank" },
+  { value: "Ujjivan Small Finance Bank", label: "Ujjivan Small Finance Bank" },
+  { value: "Equitas Small Finance Bank", label: "Equitas Small Finance Bank" },
+
+  // NBFCs
+  { value: "Bajaj Finance", label: "Bajaj Finance" },
+  { value: "TVS Credit", label: "TVS Credit" },
+  { value: "Hero FinCorp", label: "Hero FinCorp" },
+  { value: "Mahindra Finance", label: "Mahindra Finance" },
+  { value: "L&T Finance", label: "L&T Finance" },
+  { value: "Shriram Finance", label: "Shriram Finance" },
+  { value: "Cholamandalam Finance", label: "Cholamandalam Finance" },
+  { value: "Aditya Birla Finance", label: "Aditya Birla Finance" },
+  { value: "Muthoot Finance", label: "Muthoot Finance" },
+  { value: "Magma Finance", label: "Magma Finance" },
+  { value: "Tata Capital", label: "Tata Capital" },
+  { value: "Poonawalla Fincorp", label: "Poonawalla Fincorp" },
+  { value: "Sundaram Finance", label: "Sundaram Finance" },
+  { value: "Manappuram Finance", label: "Manappuram Finance" },
+
+  // OEM Finance
+  { value: "Honda Finance", label: "Honda Finance" },
+  { value: "Suzuki Finance", label: "Suzuki Finance" },
+  { value: "Yamaha Finance", label: "Yamaha Finance" },
+  { value: "Royal Enfield Finance", label: "Royal Enfield Finance" },
+  { value: "Bajaj Auto Finance", label: "Bajaj Auto Finance" },
+  { value: "TVS Finance", label: "TVS Finance" },
+
+  // Digital Lenders
+  { value: "Moneyview", label: "Moneyview" },
+  { value: "Kissht", label: "Kissht" },
+  { value: "CASHe", label: "CASHe" },
+  { value: "ZestMoney", label: "ZestMoney" },
+  { value: "Paytm Loans", label: "Paytm Loans" },
+
+  // Others
+  { value: "Local Financier", label: "Local Financier" },
+  { value: "Co-operative Bank", label: "Co-operative Bank" },
+  { value: "Credit Society", label: "Credit Society" },
+  { value: "Other", label: "Other" },
 ];
 
 export const SALES_EXECUTIVES = [
-  { value: "No sales executives added", label: "no-sales-executives-added" }
+  { value: "No sales executives added", label: "no-sales-executives-added" },
+  { value: "Raj Kumar", label: "Raj Kumar" },
+  { value: "Deepak Mishra", label: "Deepak Mishra" },
 ];
 
 export const BRANCHES = [
-  { value: "Downtown Main Showroom", label: "Downtown Main Showroom" },
-  { value: "Northside Branch", label: "Northside Branch" },
-  { value: "Airport Road Outlet", label: "Airport Road Outlet" }
+  { value: "riya-enterprises-kurtha", label: "Riya Enterprises, Kurtha" },
+  { value: "other", label: "Other" },
 ];
 
 export const RECURRING_FREQUENCIES = [
@@ -113,12 +174,9 @@ export const PURCHASE_PAYMENT_METHODS = [
 ];
 
 export const SUPPLIERS = [
-  { value: "sup_1", label: "Royal Enfield Direct", contactPerson: "Arun Singh" },
-  { value: "sup_2", label: "Honda Two Wheelers India", contactPerson: "Priya Sharma" },
-  { value: "sup_3", label: "KTM India", contactPerson: "Vikram Reddy" },
-  { value: "sup_4", label: "TVS Motor Company", contactPerson: "Anjali Desai" },
-  { value: "sup_5", label: "Bajaj Auto", contactPerson: "Rahul Kumar" },
-  { value: "sup_6", label: "Amit", contactPerson: "Amit Kumar" },
+  { value: "ws-mobility", label: "WS Mobility", contactPerson: "WS Mobility" },
+  { value: "a-one-autovision", label: "A ONEAUTOSELS", contactPerson: "A ONEAUTOSELS" },
+  { value: "satyam-motors", label: "SATYAM MOTORS", contactPerson: "SATYAM MOTORS" },
   { value: "other", label: "Other / Direct Wholesale" }
 ];
 

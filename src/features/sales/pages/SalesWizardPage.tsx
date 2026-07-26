@@ -35,7 +35,7 @@ export function SalesWizardPage() {
   const createMutation = useCreateSale();
   const updateMutation = useUpdateSale();
   const { data: apiExecutives } = useSalesExecutives();
-  const { data: inventoryResult } = useInventory({ limit: 100 });
+  const { data: inventoryResult } = useInventory({ limit: 1000 });
   const inventoryArray: InventoryVehicle[] = Array.isArray(inventoryResult)
     ? inventoryResult
     : (inventoryResult?.data ?? []);
@@ -53,10 +53,10 @@ export function SalesWizardPage() {
 
   const executiveOptions = (apiExecutives && apiExecutives.length > 0)
     ? apiExecutives.map(u => {
-        const name = [u.firstName, u.lastName].filter(Boolean).join(" ");
-        const val = name || u.email;
-        return { value: val, label: name ? `${name} (${u.email})` : u.email };
-      })
+      const name = [u.firstName, u.lastName].filter(Boolean).join(" ");
+      const val = name || u.email;
+      return { value: val, label: name ? `${name} (${u.email})` : u.email };
+    })
     : SALES_EXECUTIVES;
 
   const isEditMode = !!saleId;
@@ -77,7 +77,7 @@ export function SalesWizardPage() {
 
   const { data: customerSearchPage, isLoading: isCustomersLoading } = useCustomers({
     search: debouncedSearchTerm,
-    limit: 10,
+    limit: 1000,
   });
   const customerSearchResults = customerSearchPage?.data ?? [];
 
@@ -176,7 +176,7 @@ export function SalesWizardPage() {
   const { data: selectedCustomer } = useCustomer(selectedCustomerId);
   const selectedVehicle = inventoryList.find(v => v.id === selectedVehicleId);
   const canReleaseReservation = isEditMode && selectedVehicle?.status === "Reserved";
-  
+
   const financeRequired = watch("finance.required");
 
   // Auto-populate pricing based on selected vehicle
@@ -200,7 +200,7 @@ export function SalesWizardPage() {
     const stepIds = ["customer", "vehicle", "pricing", "payment", "finance", "delivery", "review"] as const;
     const currentStepId = stepIds[currentStep];
     const isStepValid = currentStepId === "review" ? true : await trigger(currentStepId as any);
-    
+
     if (isStepValid) {
       setCurrentStep(s => Math.min(s + 1, steps.length - 1));
     }
@@ -235,8 +235,8 @@ export function SalesWizardPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 pb-12 animate-in fade-in duration-500">
-      <PageHeader 
-        title={isEditMode ? "Edit Sale Details" : "Create Sale"} 
+      <PageHeader
+        title={isEditMode ? "Edit Sale Details" : "Create Sale"}
         description={isEditMode ? "Update details of the vehicle sale record." : "Process a new vehicle sale and generate a quotation or invoice."}
         action={
           <Button variant="outline" onClick={() => navigate({ to: "/sales" })}>
@@ -254,11 +254,10 @@ export function SalesWizardPage() {
             const isCurrent = currentStep === index;
             return (
               <div key={step.id} className="flex flex-col items-center gap-2 bg-background px-2 z-10 min-w-[80px]">
-                <div 
-                  className={`flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors ${
-                    isCompleted ? "bg-primary border-primary text-primary-foreground" :
+                <div
+                  className={`flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors ${isCompleted ? "bg-primary border-primary text-primary-foreground" :
                     isCurrent ? "border-primary text-primary" : "border-border text-muted-foreground"
-                  }`}
+                    }`}
                 >
                   {isCompleted ? <Check className="h-4 w-4" /> : <span className="text-sm font-medium">{index + 1}</span>}
                 </div>
@@ -272,7 +271,7 @@ export function SalesWizardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        
+
         {/* Main Wizard Area */}
         <div className="lg:col-span-3">
           <Card className="overflow-hidden shadow-soft border-border/50">
@@ -298,10 +297,10 @@ export function SalesWizardPage() {
                                   Phone: {selectedCustomer.phone} | Email: {selectedCustomer.email || "N/A"}
                                 </p>
                               </div>
-                              <Button 
-                                type="button" 
-                                variant="outline" 
-                                size="sm" 
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
                                 onClick={() => {
                                   setValue("customer.customerId", "", { shouldValidate: true });
                                   setSearchTerm("");
@@ -312,7 +311,7 @@ export function SalesWizardPage() {
                             </div>
                           ) : (
                             <div className="relative">
-                              <Input 
+                              <Input
                                 type="text"
                                 placeholder="Type name, email or phone to search..."
                                 value={searchTerm}
@@ -331,10 +330,10 @@ export function SalesWizardPage() {
                                   </svg>
                                 </div>
                               )}
-                              
+
                               <AnimatePresence>
                                 {isDropdownOpen && (
-                                  <motion.div 
+                                  <motion.div
                                     initial={{ opacity: 0, y: -10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -10 }}
@@ -503,7 +502,7 @@ export function SalesWizardPage() {
                           <input type="checkbox" id="financeReq" {...register("finance.required")} className="w-4 h-4 rounded text-primary" />
                         </div>
                       </div>
-                      
+
                       {financeRequired ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 animate-in fade-in zoom-in-95 duration-200">
                           <div className="space-y-2">
@@ -573,32 +572,32 @@ export function SalesWizardPage() {
                         <h3 className="text-lg font-medium">Review & Commit</h3>
                       </div>
                       <p className="text-sm text-muted-foreground -mt-4">Finalize the deal parameters to generate invoice.</p>
-                      
+
                       <div className="bg-muted/20 p-6 rounded-xl border border-border/50">
-                         <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Sale Summary</h4>
-                         <div className="space-y-2 mb-6">
-                            <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Customer:</span><span className="text-sm font-medium">{selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : (selectedCustomerId || "None")}</span></div>
-                            <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Vehicle:</span><span className="text-sm font-medium font-mono">{selectedVehicle ? `${selectedVehicle.make} ${selectedVehicle.model} - ${selectedVehicle.variant}` : (selectedVehicleId || "None")}</span></div>
-                           <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Expected Delivery:</span><span className="text-sm font-medium">{watch("delivery.expectedDate")}</span></div>
-                         </div>
-                         <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 border-t border-border/50 pt-4">Financials</h4>
-                         <div className="space-y-2">
-                           <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Grand Total:</span><span className="text-sm font-medium font-mono">{formatCurrency(grandTotal)}</span></div>
-                           <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Initial Payment:</span><span className="text-sm font-medium font-mono text-emerald-600">{formatCurrency(paymentAmount)}</span></div>
-                           <div className="flex justify-between items-center pt-2 border-t border-border/50"><span className="text-sm font-medium">Outstanding Balance:</span><span className="text-sm font-bold font-mono text-destructive">{formatCurrency(outstanding)}</span></div>
-                         </div>
+                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Sale Summary</h4>
+                        <div className="space-y-2 mb-6">
+                          <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Customer:</span><span className="text-sm font-medium">{selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : (selectedCustomerId || "None")}</span></div>
+                          <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Vehicle:</span><span className="text-sm font-medium font-mono">{selectedVehicle ? `${selectedVehicle.make} ${selectedVehicle.model} - ${selectedVehicle.variant}` : (selectedVehicleId || "None")}</span></div>
+                          <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Expected Delivery:</span><span className="text-sm font-medium">{watch("delivery.expectedDate")}</span></div>
+                        </div>
+                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 border-t border-border/50 pt-4">Financials</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Grand Total:</span><span className="text-sm font-medium font-mono">{formatCurrency(grandTotal)}</span></div>
+                          <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Initial Payment:</span><span className="text-sm font-medium font-mono text-emerald-600">{formatCurrency(paymentAmount)}</span></div>
+                          <div className="flex justify-between items-center pt-2 border-t border-border/50"><span className="text-sm font-medium">Outstanding Balance:</span><span className="text-sm font-bold font-mono text-destructive">{formatCurrency(outstanding)}</span></div>
+                        </div>
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
-              
+
               {/* Footer Actions */}
               <div className="flex items-center justify-between border-t p-6 bg-muted/20">
                 <Button variant="outline" onClick={handleBack} disabled={currentStep === 0} className="shadow-sm">
                   <ChevronLeft className="mr-2 h-4 w-4" /> Back
                 </Button>
-                
+
                 {currentStep < steps.length - 1 ? (
                   <Button onClick={handleNext} className="shadow-sm">
                     Next <ChevronRight className="ml-2 h-4 w-4" />
@@ -631,7 +630,7 @@ export function SalesWizardPage() {
                   <span>Grand Total</span>
                   <span className="font-mono">{formatCurrency(grandTotal)}</span>
                 </div>
-                
+
                 <div className="border-t border-border/50 pt-4 mt-4">
                   <div className="flex justify-between text-emerald-600 font-medium"><span>Paid</span><span className="font-mono">{formatCurrency(paymentAmount)}</span></div>
                   <div className="flex justify-between text-destructive font-medium mt-1"><span>Balance</span><span className="font-mono">{formatCurrency(outstanding)}</span></div>
