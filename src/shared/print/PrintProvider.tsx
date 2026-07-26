@@ -1,6 +1,6 @@
 import React, { createContext, useState, useRef, useEffect } from "react";
 import { useReactToPrint } from "react-to-print";
-import html2canvas from "html2canvas";
+import { toCanvas } from "html-to-image";
 import jsPDF from "jspdf";
 import { PrintableDocument } from "./PrintableDocument";
 import { toast } from "sonner";
@@ -23,38 +23,37 @@ interface ActiveJob {
   reject: (err: any) => void;
 }
 
-const generatePdfFromElement = async (element: HTMLElement, filename: string) => {
-  const canvas = await html2canvas(element, {
-    scale: 2, // High resolution
-    useCORS: true, // Allow cross-origin images (e.g. logos)
-    logging: false,
+const generatePdfFromElement = async (
+  element: HTMLElement,
+  filename: string
+) => {
+  const canvas = await toCanvas(element, {
+    cacheBust: true,
+    pixelRatio: 2,
     backgroundColor: "#ffffff",
-    windowWidth: 800, // Lock window width to ensure consistent layout
   });
 
-  const imgData = canvas.toDataURL("image/jpeg", 0.95);
-  
-  // A4 dimensions: 210mm x 297mm
+  const imgData = canvas.toDataURL("image/png");
+
   const pdf = new jsPDF("p", "mm", "a4");
+
   const pdfWidth = pdf.internal.pageSize.getWidth();
   const pdfHeight = pdf.internal.pageSize.getHeight();
-  
-  // Calculate height in mm based on canvas aspect ratio
+
   const imgWidth = pdfWidth;
-  const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-  
+  const imgHeight = canvas.height * imgWidth / canvas.width;
+
   let heightLeft = imgHeight;
   let position = 0;
 
-  // Page 1
-  pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
+  pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+
   heightLeft -= pdfHeight;
 
-  // Multi-page support
   while (heightLeft > 0) {
     position = heightLeft - imgHeight;
     pdf.addPage();
-    pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
     heightLeft -= pdfHeight;
   }
 
@@ -69,10 +68,24 @@ export const PrintProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const isPrinting = activeJob?.action === "print";
   const isExporting = activeJob?.action === "pdf";
 
-  // Initialize react-to-print
   const triggerReactToPrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: activeJob?.filename?.replace(/\.pdf$/, "") || "Document",
+
+    pageStyle: `
+    @page {
+      size: A4 portrait;
+      margin: 8mm;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 210mm;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+  `,
   });
 
   // Effect to wait for render frame before triggering action
@@ -90,8 +103,8 @@ export const PrintProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (activeJob && isReady) {
       const executeJob = async () => {
         const toastId = toast.loading(
-          activeJob.action === "print" 
-            ? "Preparing print job..." 
+          activeJob.action === "print"
+            ? "Preparing print job..."
             : "Generating PDF document..."
         );
 
@@ -163,18 +176,19 @@ export const PrintProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <PrintContext.Provider value={{ printDocument, exportPdf, isPrinting, isExporting }}>
       {children}
-      
+
       {/* Hidden container for printing/PDF capture */}
       {activeJob && (
-        <div 
-          style={{ 
-            position: "absolute", 
-            left: "-9999px", 
-            top: "-9999px", 
-            width: "800px", 
-            opacity: 1, 
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            visibility: "hidden",
             pointerEvents: "none",
-            zIndex: -9999
+            width: "210mm",
+            background: "#fff",
+            zIndex: -1,
           }}
         >
           <div ref={printRef}>

@@ -179,7 +179,7 @@ export const InvoicePrintDocument: React.FC<InvoicePrintDocumentProps> = ({ invo
               </div>
               <div className="border-b border-black p-1">
                 <span className="font-semibold">Invoice Amount In Words :</span><br />
-                Fifty one thousand Rupees only (mock)
+                <span className="font-bold">{numberToWords(invoice.grandTotal)}</span>
               </div>
               <div className="flex border-b border-black">
                 <div className="flex-1 p-1 font-semibold border-r border-black">Received</div>
@@ -247,3 +247,73 @@ export const InvoicePrintDocument: React.FC<InvoicePrintDocumentProps> = ({ invo
     </div>
   );
 };
+
+export function numberToWords(amount: number): string {
+  const ones = [
+    "", "One", "Two", "Three", "Four", "Five", "Six", "Seven",
+    "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen",
+    "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"
+  ];
+
+  const tens = [
+    "", "", "Twenty", "Thirty", "Forty", "Fifty",
+    "Sixty", "Seventy", "Eighty", "Ninety"
+  ];
+
+  const convertBelowThousand = (num: number): string => {
+    let str = "";
+
+    if (num >= 100) {
+      str += `${ones[Math.floor(num / 100)]} Hundred `;
+      num %= 100;
+    }
+
+    if (num >= 20) {
+      str += `${tens[Math.floor(num / 10)]} `;
+      num %= 10;
+    }
+
+    if (num > 0) {
+      str += `${ones[num]} `;
+    }
+
+    return str.trim();
+  };
+
+  const convert = (num: number): string => {
+    if (num === 0) return "Zero";
+
+    const crore = Math.floor(num / 10000000);
+    num %= 10000000;
+
+    const lakh = Math.floor(num / 100000);
+    num %= 100000;
+
+    const thousand = Math.floor(num / 1000);
+    num %= 1000;
+
+    const hundred = num;
+
+    let result = "";
+
+    if (crore) result += `${convertBelowThousand(crore)} Crore `;
+    if (lakh) result += `${convertBelowThousand(lakh)} Lakh `;
+    if (thousand) result += `${convertBelowThousand(thousand)} Thousand `;
+    if (hundred) result += `${convertBelowThousand(hundred)}`;
+
+    return result.trim();
+  };
+
+  const rupees = Math.floor(amount);
+  const paise = Math.round((amount - rupees) * 100);
+
+  let words = `${convert(rupees)} Rupees`;
+
+  if (paise > 0) {
+    words += ` and ${convert(paise)} Paise`;
+  }
+
+  words += " Only";
+
+  return words;
+}
