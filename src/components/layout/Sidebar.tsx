@@ -11,7 +11,7 @@ import {
   Receipt,
   Wallet,
   BarChart3,
-  Settings as SettingsIcon,
+  // Settings,
   ChevronLeft,
   ChevronsUpDown,
   LogOut,
@@ -31,7 +31,7 @@ const navItems = [
   { name: "Invoices", href: "/invoices", icon: Receipt, permission: "showora:invoice:read" },
   { name: "Expenses", href: "/expenses", icon: Wallet, permission: "showora:expense:read" },
   { name: "Reports", href: "/reports", icon: BarChart3, permission: "showora:report:read" },
-  { name: "Settings", href: "/settings", icon: SettingsIcon, permission: "showora:setting:read" },
+  // { name: "Settings", href: "/settings", icon: SettingsIcon, permission: "showora:setting:read" },
 ] as const;
 
 export function Sidebar() {
