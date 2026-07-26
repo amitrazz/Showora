@@ -252,7 +252,7 @@ export function LoginPage() {
                       <span>Authenticating...</span>
                     </div>
                   ) : (
-                    <span>Sign In to Workspace</span>
+                    <span>Sign In to {appName}</span>
                   )}
                 </Button>
 
